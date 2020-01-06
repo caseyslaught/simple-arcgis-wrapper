@@ -27,6 +27,23 @@ class TestFeatureService(unittest.TestCase):
         client.close()
 
 
+    def test_get_feature_service(self):
+
+        client = simple_arcgis_wrapper.ArcgisApi(access_token=AGOL_ACCESS_TOKEN, refresh_token=AGOL_REFRESH_TOKEN, 
+                                                 client_id=AGOL_CLIENT_ID, username=AGOL_USERNAME)
+
+        name = f'Testing-{random.randint(0, 99)}'
+        description = 'This is a test.'
+        feature_service = client.create_feature_service(name, description)
+
+        services = client.get_feature_services(name)
+        self.assertIsNotNone(services)
+        self.assertEqual(len(services), 1)
+
+        self.assertTrue(client.delete_feature_service(feature_service['item_id']))
+        client.close()
+
+
     def test_update_feature_service(self):
 
         client = simple_arcgis_wrapper.ArcgisApi(access_token=AGOL_ACCESS_TOKEN, refresh_token=AGOL_REFRESH_TOKEN, 
@@ -37,6 +54,16 @@ class TestFeatureService(unittest.TestCase):
         feature_service = client.create_feature_service(name, description)
 
         self.assertTrue(client.update_feature_service(feature_service['item_id'], title=f'{name} (Update)'))
+        
         self.assertTrue(client.delete_feature_service(feature_service['item_id']))
-
         client.close()
+
+
+
+
+
+
+
+
+
+

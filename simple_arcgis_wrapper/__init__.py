@@ -3,6 +3,9 @@ import json
 import os
 import requests
 
+from .utilities.coordinates import get_decimal_degrees_to_webmerc
+
+
 ARCGIS_BASE_URL = 'https://www.arcgis.com/sharing/rest'
 
 
@@ -64,9 +67,10 @@ class ArcgisApi(object):
 
     def _get_esri_type(self, layer_type):
         if layer_type == 'point':
-            esri_type = 'esriGeometryPoint'
+            return 'esriGeometryPoint'
         else:
             raise NotImplementedError('Non-point geometries not implemented yet')
+
 
     def _refresh_token(self):
 
@@ -122,6 +126,48 @@ class ArcgisApi(object):
 
     # public methods #
 
+    def _add_feature(self, features, layer_url):
+        # TODO: once we know how to create other types of features
+        # pass them through here
+        create_feature_url = f'{layer_url}/addFeatures'
+        data = {
+            'features': json.dumps(features)
+        }
+
+        raise NotImplementedError()
+        
+
+    def add_point(self, x, y, layer_url, attributes=None):
+
+        if x > 180:
+            raise ValueError('invalid x value')
+
+        if y > 90:
+            raise ValueError('invalid y value')
+
+        features = [{
+            'attributes': attributes,
+            'geometry': {
+                'x': round(x, 8), # decimal degrees
+                'y': round(y, 8)
+            }
+        }]
+
+        data = {
+            'features': json.dumps(features)
+        }
+
+        create_feature_url = f'{layer_url}/addFeatures'
+        res = self._post(create_feature_url, data)
+
+        if not res['addResults'][0]['success']:
+            raise ArcGISException(res['addResults'][0]['error']['description'])
+
+        return {
+            'id': res['addResults'][0]['objectId']
+        }
+
+
     def close(self):
         self._session.close()
 
@@ -144,7 +190,7 @@ class ArcgisApi(object):
         res = self._post(create_service_url, data)
 
         if not res.get('success', False):
-            raise RuntimeError(res['error']['message'])
+            raise ArcGISException(res['error']['message'])
 
         return {
             'item_id': res['itemId'],
@@ -156,7 +202,6 @@ class ArcgisApi(object):
     def create_feature_layer(self, layer_type, name, description, feature_service_url, fields, x_min, y_min, x_max, y_max, wkid=4326):
 
         esri_type = self._get_esri_type(layer_type)
-
         create_layer_url = feature_service_url.replace('/services/', '/admin/services/') + '/addToDefinition'
 
         add_to_definition = {
@@ -193,7 +238,8 @@ class ArcgisApi(object):
         layer = res['layers'][0]
         return {
             'id': layer['id'],
-            'name': layer['name']
+            'name': layer['name'],
+            'url': f'{feature_service_url}/{layer["id"]}'
         }
 
 
@@ -226,6 +272,28 @@ class ArcgisApi(object):
             raise ArcGISException(res['error']['message'])
             
         return True
+
+
+    def get_feature_services(self, keyword, owner_username=None):
+
+        service_owner = owner_username or self.username
+        search_url = f'{self.base_url}/search'
+        params = {
+            'q': f'title: {keyword} AND owner: {service_owner} AND type: \"Feature Service\"',
+        }
+
+        res = self._get(search_url, params)
+
+        if res.get('results'):
+            return [
+                {
+                    'item_id': service['id'],
+                    'name': service['name'],
+                    'url': service['url']
+                }
+
+                for service in res['results']
+            ]
 
 
     def update_feature_service(self, feature_service_id, title=None):
