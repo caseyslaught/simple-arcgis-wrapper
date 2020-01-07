@@ -113,10 +113,12 @@ class ArcgisApi(object):
                     
         return processed_response
 
-    def _get(self, url, params):
+
+    def _get(self, url, params=dict()):
         params['f'] = 'json'
         params['token'] = self.access_token
         return self._request("get", url, params=params)
+
 
     def _post(self, url, data=dict()):
         data['f'] = 'json'
@@ -127,13 +129,6 @@ class ArcgisApi(object):
     # public methods #
 
     def _add_feature(self, features, layer_url):
-        # TODO: once we know how to create other types of features
-        # pass them through here
-        create_feature_url = f'{layer_url}/addFeatures'
-        data = {
-            'features': json.dumps(features)
-        }
-
         raise NotImplementedError()
         
 
@@ -272,6 +267,24 @@ class ArcgisApi(object):
             raise ArcGISException(res['error']['message'])
             
         return True
+
+
+    def get_feature_layer(self, feature_service_url, layer_id=None, layer_name=None):
+        
+        res = self._get(feature_service_url)
+
+        if res.get('error', False):
+            raise ArcGISException(res['error']['message'])
+
+        for layer in res.get('layers', []):
+            if (layer_id and int(layer_id) == layer['id']) or \
+               (layer_name and layer_name == layer['name']):
+
+                return {
+                    'id': layer['id'],
+                    'name': layer['name'],
+                    'url': f'{feature_service_url}/{layer["id"]}'
+                }
 
 
     def get_feature_services(self, keyword, owner_username=None):

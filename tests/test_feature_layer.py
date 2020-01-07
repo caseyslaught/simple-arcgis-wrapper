@@ -31,14 +31,7 @@ class TestFeatureLayer(unittest.TestCase):
         client = self.__class__.client
         feature_service = self.__class__.feature_service
         
-        fields = saw_fields.Fields()
-        fields.add_field(name="Date", field=field_types.DateField)
-        fields.add_field(name="Name", field=field_types.StringField)
-        fields.add_field(name="Altitude", field=field_types.DoubleField)
-
-        fl = client.create_feature_layer(layer_type='point', name='My Point Layer', description='My amazing points', 
-                                         feature_service_url=feature_service['url'], fields=fields, 
-                                         x_min=10.0, y_min=10.0, x_max=20.0, y_max=20.0, wkid=4326)
+        fl = TestFeatureLayer.create_point_feature_layer('Test Create Point Layer', client, feature_service)
 
         self.assertTrue(client.delete_feature_layers([fl['id']], feature_service['url']))
 
@@ -49,13 +42,7 @@ class TestFeatureLayer(unittest.TestCase):
         feature_service = self.__class__.feature_service
 
         # create the feature layer to add points to
-        fields = saw_fields.Fields()
-        fields.add_field(name="Date", field=field_types.DateField)
-        fields.add_field(name="Name", field=field_types.StringField)
-        fields.add_field(name="Altitude", field=field_types.DoubleField)
-        fl = client.create_feature_layer(layer_type='point', name='Testing Add Point', description='My amazing test', 
-                                         feature_service_url=feature_service['url'], fields=fields, 
-                                         x_min=10.0, y_min=10.0, x_max=20.0, y_max=20.0, wkid=4326)
+        fl = TestFeatureLayer.create_point_feature_layer('Test Create Point', client, feature_service)
 
         attributes = {
             'Date': '2020-01-01 15:30:45',
@@ -72,6 +59,37 @@ class TestFeatureLayer(unittest.TestCase):
         pass
 
     
+    def test_get_feature_layer(self):
+
+        client = self.__class__.client
+        feature_service = self.__class__.feature_service
+
+        fl = TestFeatureLayer.create_point_feature_layer('Test Get Layer', client, feature_service)
+        
+        fl_id = client.get_feature_layer(feature_service['url'], layer_id=fl['id'])
+        fl_name = client.get_feature_layer(feature_service['url'], layer_id=fl['id'])
+
+        self.assertIsNotNone(fl_id)
+        self.assertEqual(fl_id['id'], fl['id'])    
+        self.assertEqual(fl_id['name'], fl['name'])
+
+        self.assertIsNotNone(fl_name)
+        self.assertEqual(fl_name['id'], fl['id'])    
+        self.assertEqual(fl_name['name'], fl['name'])
+
+
+    @staticmethod
+    def create_point_feature_layer(name, client, feature_service):
+
+        fields = saw_fields.Fields()
+        fields.add_field(name="Date", field=field_types.DateField)
+        fields.add_field(name="Name", field=field_types.StringField)
+        fields.add_field(name="Altitude", field=field_types.DoubleField)
+
+        fl = client.create_feature_layer(layer_type='point', name=name, description='My test description', 
+                                         feature_service_url=feature_service['url'], fields=fields, 
+                                         x_min=10.0, y_min=10.0, x_max=20.0, y_max=20.0, wkid=4326)
+        return fl
 
 
 
