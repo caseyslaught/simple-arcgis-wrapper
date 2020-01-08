@@ -1,4 +1,3 @@
-
 DateField = {
     "type": "esriFieldTypeDate",
     "sqlType": "sqlTypeNVarchar",

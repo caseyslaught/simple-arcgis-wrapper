@@ -1,7 +1,7 @@
 
 import json
 
-from simple_arcgis_wrapper.fields.types import _ObjectIdField
+from .field_types import _ObjectIdField
 
 
 class Fields:
@@ -20,4 +20,6 @@ class Fields:
 
     def get_fields(self):
         return self._fields
+
+
 

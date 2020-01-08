@@ -1,0 +1,3 @@
+
+class ArcGISException(Exception):
+    pass
