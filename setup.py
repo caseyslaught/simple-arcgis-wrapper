@@ -20,7 +20,7 @@ setup(
     keywords='arcgis gis rest api wrapper',
     license='MIT',
     long_description=long_description,
-    long_description_content_type='text/markdown'
+    long_description_content_type='text/markdown',
     url='https://github.com/caracal-cloud/simple-arcgis-wrapper',
 
     packages=['simple_arcgis_wrapper'],

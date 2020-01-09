@@ -10,6 +10,7 @@ class TestFeatureLayer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        random.seed(3141592)
         api = saw.ArcgisAPI(access_token=AGOL_ACCESS_TOKEN, refresh_token=AGOL_REFRESH_TOKEN, 
                             client_id=AGOL_CLIENT_ID, username=AGOL_USERNAME)
         feature_service = api.create_feature_service(f'Testing-{random.randint(0, 99)}', 'This is a test.')
@@ -47,7 +48,7 @@ class TestFeatureLayer(unittest.TestCase):
             'Altitude': 12.5
         }
 
-        point = api.add_point(10.0, 20.0, fl['url'], attributes=attributes)
+        point = api.add_point(lon=10.0, lat=20.0, layer_url=fl['url'], attributes=attributes)
 
         self.assertIsNotNone(point)
 

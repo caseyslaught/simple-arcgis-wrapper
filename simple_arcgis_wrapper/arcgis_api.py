@@ -1,19 +1,29 @@
-
-
 import json
 import os
 import requests
 
+from .exceptions import ArcGISException
 
+
+# TODO: better place to put this?
 ARCGIS_BASE_URL = 'https://www.arcgis.com/sharing/rest'
 
 
 class ArcgisAPI(object):
+    '''
+    ArcGIS API
+    '''
 
-    def __init__(self, access_token=None, refresh_token=None, client_id=None, client_secret=None, 
-                 username=None, password=None, base_url=ARCGIS_BASE_URL):
+    # TODO: separate API sections with multiple-inheritance?
+    # ArcgisAPI inherits from ArcgisResourceAPI
+
+
+    def __init__(self, access_token=None, refresh_token=None, client_id=None, 
+                 username=None, base_url=ARCGIS_BASE_URL):
 
         self.base_url = base_url
+
+        self.content = None
 
         # Server-based named-user login
         if access_token is not None and refresh_token is not None and \
@@ -47,32 +57,30 @@ class ArcgisAPI(object):
                     "username not found. Pass username as a kwarg or set an env var ARCGIS_USERNAME"
                 )
 
-        # Client-credentials login
-        elif client_id is not None and client_secret is not None:
-            # TODO: obtain access_token by sending to token/ endpoint with client details and client_credentials type
-            raise NotImplementedError('Client credentials authentication scheme not yet implemented.')
-
-        # Username/password login
-        elif username is not None and password is not None:
-            raise NotImplementedError('Username/password login not yet implemented.')
-
         else:
             raise RuntimeError('Authentication details missing.')
 
         self._session = requests.Session()
 
 
-    # private utilities #
+    @classmethod
+    def fromclientcredentials(cls, client_id, client_secret):
+        'docs'
+        # TODO: get tokens then call cls() constructor
+        # call cls not ArcgisAPI constructor to support subclassing
+        raise NotImplementedError('Client credentials initialization not yet implemented')
+
 
     def _get_esri_type(self, layer_type):
+        'docs'
         if layer_type == 'point':
             return 'esriGeometryPoint'
         else:
             raise NotImplementedError('Non-point geometries not implemented yet')
 
 
-    def _refresh_token(self):
-
+    def _refresh_access_token(self):
+        'docs'
         if self.refresh_token is None:
             return False
 
@@ -84,9 +92,9 @@ class ArcgisAPI(object):
             'grant_type': 'refresh_token'
         }
 
-        # don't use _post/_request to avoid loop
+        # don't use __post/__request to avoid loop
         res = self._session.request('post', refresh_url, data=data)
-        processed_response = self._process_response(res)
+        processed_response = self.__process_response(res)
         
         if processed_response.get('error'):
             return False
@@ -94,56 +102,64 @@ class ArcgisAPI(object):
             self.access_token = processed_response['access_token']
             return True
 
+
     def _process_response(self, response):
+        'docs'
         return response.json()
 
-    def _request(self, method, url, params=None, data=None):
 
+    def _request(self, method, url, params=None, data=None):
+        'docs'
         response = self._session.request(method, url, params=params, data=data)
-        processed_response = self._process_response(response)
+        processed_response = self.__process_response(response)
 
         # handle access token expired
         if processed_response.get('error'):
             if processed_response['error']['code'] in [498, 499]:
-                if self._refresh_token():
+                if self.__refresh_access_token():
                     data['token'] = self.access_token
                     response = self._session.request(method, url, params=params, data=data)
-                    processed_response = self._process_response(response)
+                    processed_response = self.__process_response(response)
                     
         return processed_response
 
 
     def _get(self, url, params=dict()):
+        'docs'
         params['f'] = 'json'
         params['token'] = self.access_token
-        return self._request("get", url, params=params)
+        return self.__request("get", url, params=params)
 
 
     def _post(self, url, data=dict()):
+        'docs'
         data['f'] = 'json'
         data['token'] = self.access_token
-        return self._request("post", url, data=data)
+        return self.__request("post", url, data=data)
 
-
-    # public methods #
 
     def _add_feature(self, features, layer_url):
+        'docs'
         raise NotImplementedError()
-        
 
-    def add_point(self, x, y, layer_url, attributes=None):
 
-        if x > 180:
+    def add_point(self, lon=None, lat=None, layer_url=None, attributes=None):
+        'docs'
+
+        if None in [lon, lat, layer_url, attributes]:
+            raise ValueError('lon, lat, layer_url, and attributes must not be None')
+
+        if abs(lon) > 180:
             raise ValueError('invalid x value')
 
-        if y > 90:
+        if abs(lat) > 90:
             raise ValueError('invalid y value')
 
         features = [{
             'attributes': attributes,
             'geometry': {
-                'x': round(x, 8), # decimal degrees
-                'y': round(y, 8)
+                'x': round(lon, 8), # decimal degrees
+                'y': round(lat, 8)
             }
         }]
 
@@ -152,7 +168,7 @@ class ArcgisAPI(object):
         }
 
         create_feature_url = f'{layer_url}/addFeatures'
-        res = self._post(create_feature_url, data)
+        res = self.__post(create_feature_url, data)
 
         if not res['addResults'][0]['success']:
             raise ArcGISException(res['addResults'][0]['error']['description'])
@@ -163,11 +179,12 @@ class ArcgisAPI(object):
 
 
     def close(self):
+        'docs'
         self._session.close()
 
 
     def create_feature_service(self, name, description):
-
+        'docs'
         create_service_url = f'{self.base_url}/content/users/{self.username}/createService'
 
         create_params = {
@@ -181,7 +198,7 @@ class ArcgisAPI(object):
             'outputType': 'featureService'
         }
 
-        res = self._post(create_service_url, data)
+        res = self.__post(create_service_url, data)
 
         if not res.get('success', False):
             raise ArcGISException(res['error']['message'])
@@ -194,8 +211,8 @@ class ArcgisAPI(object):
 
 
     def create_feature_layer(self, layer_type, name, description, feature_service_url, fields, x_min, y_min, x_max, y_max, wkid=4326):
-
-        esri_type = self._get_esri_type(layer_type)
+        'docs'
+        esri_type = self.__get_esri_type(layer_type)
         create_layer_url = feature_service_url.replace('/services/', '/admin/services/') + '/addToDefinition'
 
         add_to_definition = {
@@ -224,7 +241,7 @@ class ArcgisAPI(object):
             'outputType': 'featureService',
         }
 
-        res = self._post(create_layer_url, data)
+        res = self.__post(create_layer_url, data)
 
         if not res.get('success', False):
             raise ArcGISException(res['error']['message'])
@@ -238,7 +255,7 @@ class ArcgisAPI(object):
 
 
     def delete_feature_layers(self, layer_ids, feature_service_url):
-
+        'docs'
         delete_layers_url = feature_service_url.replace('/services/', '/admin/services/') + '/deleteFromDefinition'
 
         deleteFromDefinition = {
@@ -249,7 +266,7 @@ class ArcgisAPI(object):
             'deleteFromDefinition': json.dumps(deleteFromDefinition),
         }
 
-        res = self._post(delete_layers_url, data)
+        res = self.__post(delete_layers_url, data)
 
         if not res.get('success', False):
             raise ArcGISException(res['error']['message'])
@@ -258,9 +275,9 @@ class ArcgisAPI(object):
 
 
     def delete_feature_service(self, item_id):
-
+        'docs'
         delete_service = f'{self.base_url}/content/users/{self.username}/items/{item_id}/delete'
-        res = self._post(delete_service)
+        res = self.__post(delete_service)
         
         if not res.get('success', False):
             raise ArcGISException(res['error']['message'])
@@ -269,8 +286,8 @@ class ArcgisAPI(object):
 
 
     def get_feature_layer(self, feature_service_url, layer_id=None, layer_name=None):
-        
-        res = self._get(feature_service_url)
+        'docs'
+        res = self.__get(feature_service_url)
 
         if res.get('error', False):
             raise ArcGISException(res['error']['message'])
@@ -287,14 +304,14 @@ class ArcgisAPI(object):
 
 
     def get_feature_services(self, keyword, owner_username=None):
-
+        'docs'
         service_owner = owner_username or self.username
         search_url = f'{self.base_url}/search'
         params = {
             'q': f'title: {keyword} AND owner: {service_owner} AND type: \"Feature Service\"',
         }
 
-        res = self._get(search_url, params)
+        res = self.__get(search_url, params)
 
         if res.get('results'):
             return [
@@ -309,7 +326,7 @@ class ArcgisAPI(object):
 
 
     def update_feature_service(self, feature_service_id, title=None):
-
+        'docs'
         update_service_url = f'{self.base_url}/content/users/{self.username}/items/{feature_service_id}/update'
 
         data = {
@@ -318,9 +335,19 @@ class ArcgisAPI(object):
         }
         
         data = {k: v for k, v in data.items() if v is not None}
-        res = self._post(update_service_url, data)
+        res = self.__post(update_service_url, data)
 
         if not res.get('success', False):
             raise ArcGISException(res['error']['message'])
 
         return True
+
+
+    # allow name mangling for subclass override support
+    __add_feature = _add_feature
+    __get_esri_type = _get_esri_type
+    __refresh_access_token = _refresh_access_token
+    __process_response = _process_response
+    __request = _request
+    __get = _get
+    __post = _post

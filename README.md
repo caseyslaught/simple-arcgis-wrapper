@@ -82,7 +82,6 @@ python -m unittest tests/test*.py
 
 The token will be automatically refreshed.
 
-
 ## Authors
 
 * **Casey Slaught** - *Initial work* - [Caracal](https://github.com/caracal-cloud)
