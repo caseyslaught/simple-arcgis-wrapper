@@ -10,6 +10,12 @@ This project is geared towards developers who just want to get data into the Arc
 
 You will need to have an ArcGIS Online account.
 
+Before you get started, you should know a thing or two about ArcGIS lingo.
+Here are few key terms:
+Feature service:
+Feature layer:
+Feature:
+
 ## Installing
 
 ```
