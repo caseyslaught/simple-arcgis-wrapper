@@ -20,7 +20,7 @@ class TestFeatureService(unittest.TestCase):
         self.api.close()
 
     def create_feature_service(self, name=None):
-        service_name = name or f'SAW-Testing-{random.randint(0, 99)}'
+        service_name = name or f'SAW Testing {random.randint(0, 99)}'
         description = 'This is a test.'
         return self.api.services.create_feature_service(service_name, description)
 
@@ -33,7 +33,7 @@ class TestFeatureService(unittest.TestCase):
 
     def test_create_duplicate_feature_service(self):
 
-        name = 'SAW-Testing-Duplicate-Service'
+        name = 'SAW Testing Duplicate Service'
         fs1 = self.create_feature_service(name=name)
 
         with self.assertRaises(saw.exceptions.ArcGISException):
@@ -46,11 +46,30 @@ class TestFeatureService(unittest.TestCase):
 
         feature_service = self.create_feature_service()
 
-        services = self.api.services.get_feature_services(feature_service.name)
-        self.assertIsNotNone(services)
-        self.assertEqual(len(services), 1)
+        service = self.api.services.get_feature_service(feature_service.name)
+        self.assertIsNotNone(service)
 
         self.assertTrue(self.api.services.delete_feature_service(feature_service.id))
+
+
+    def test_get_one_feature_service(self):
+        # verify that get_feature_service returns the exact name
+
+        name1, name_saw, name2 = 'SAW 1', 'SAW', 'SAW 2'
+        feature_service1 = self.create_feature_service(name=name1)
+        feature_service_saw = self.create_feature_service(name=name_saw)
+        feature_service2 = self.create_feature_service(name=name2)
+
+        service = self.api.services.get_feature_service(name_saw)
+        self.assertIsNotNone(service)
+        self.assertEqual(service.id, feature_service_saw.id)
+        self.assertEqual(service.name, feature_service_saw.name)
+        self.assertEqual(service.name, name_saw)
+        self.assertEqual(service.url, feature_service_saw.url) # check URL encoding of return URL
+
+        self.assertTrue(self.api.services.delete_feature_service(feature_service1.id))
+        self.assertTrue(self.api.services.delete_feature_service(feature_service_saw.id))
+        self.assertTrue(self.api.services.delete_feature_service(feature_service2.id))
 
 
     def test_update_feature_service(self):

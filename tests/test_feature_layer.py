@@ -10,11 +10,9 @@ class TestFeatureLayer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         random.seed(3141592)
-
-        # TODO: finish this!
         api = saw.ArcgisAPI(access_token=AGOL_ACCESS_TOKEN, refresh_token=AGOL_REFRESH_TOKEN, 
                              client_id=AGOL_CLIENT_ID, username=AGOL_USERNAME)
-        feature_service = api.services.create_feature_service(f'Testing-{random.randint(0, 99)}', 'This is a test.')
+        feature_service = api.services.create_feature_service(f'Testing {random.randint(0, 99)}', 'This is a test.')
         cls.api = api
         cls.feature_service = feature_service
 

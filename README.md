@@ -41,7 +41,7 @@ import simple_arcgis_wrapper as saw
 You will need a registered app and tokens obtained through the OAuth flow. Check out [this link](https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/server-based-user-logins/) to learn more about setting up OAuth.
 
 ```
-client = saw.ArcgisAPI(
+api = saw.ArcgisAPI(
     access_token='ACCESS_TOKEN',   # access token obtained from user
     refresh_token='REFRESH_TOKEN', # refresh token obtained from user
     username='USERNAME',           # username obtained from user

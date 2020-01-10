@@ -2,12 +2,14 @@
 
 '''
 
+import urllib.parse
+
 class FeatureService(object):
 
     def __init__(self, id, name, url):
         self._id = id
         self._name = name
-        self._url = url
+        self._url = urllib.parse.quote(url, safe='%/:?=&')
 
     @property
     def id(self):
@@ -27,7 +29,7 @@ class FeatureLayer(object):
     def __init__(self, id, name, url):
         self._id = id
         self._name = name
-        self._url = url
+        self._url = urllib.parse.quote(url, safe='%/:?=&')
 
     @property
     def id(self):
