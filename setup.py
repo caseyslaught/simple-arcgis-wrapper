@@ -3,7 +3,7 @@ import sys
 
 from setuptools import setup
 
-version = '0.1'
+version = '0.3'
 
 long_description = open('README.md').read()
 
@@ -26,7 +26,7 @@ setup(
     packages=['simple_arcgis_wrapper'],
     python_requires=">=3",
     install_requires=[
-        'requests>=v2.22.0'
+        'requests>=2.10.0'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

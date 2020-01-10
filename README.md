@@ -71,14 +71,14 @@ fields.add_field('Name', saw.fields.StringField)
 fields.add_field('Altitude', saw.fields.DoubleField)
 
 layer = api.services.create_feature_layer(
-    layer_type='point',                      # just point supported for now
+    layer_type='point',                      # point, line, or polygon
     name=name,                               # name of the layer
     description='My test description',       # description of the layer
     feature_service_url=feature_service.url, # the URL of the feature service that the layer will be added to
     fields=layer_fields,                     # a Fields instance
     x_min=10.0, y_min=10.0,                  # min bounding box parameters
     x_max=20.0, y_max=20.0,                  # max bounding box parameters
-    wkid=4326                                # well known ...
+    wkid=4326                                # well-known ID spatial reference
 )
 
 print(layer.id, layer.name, layer.url) # layer is a FeatureLayer object
@@ -95,7 +95,7 @@ attributes = {
     'Altitude': 12.5
 }
 
-point_feature = api.services.add_point(lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes)
+point_feature = api.services.add_point(lon=10.0, lat=20.0, layer_url=layer.url, attributes=attributes)
 
 print(point_feature.id) # point_feature is a Feature object
 ```
@@ -121,14 +121,15 @@ Before testing, configure the following environment variables:
 - ARCGIS_CLIENT_ID
 - ARCGIS_USERNAME
 
-By running this you will incur a small cost to your account.
+By running the tests you will incur a (very) small charge to your account.
+
 ```
 python -m unittest tests/test*.py
 ```
 
 ## Authors
 
-* **Casey Slaught** - *Primary work* - [Caracal](https://github.com/caracal-cloud)
+* **Casey Slaught** - *Lead developer* - [Caracal](https://github.com/caracal-cloud)
 
 ## License
 

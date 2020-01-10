@@ -1,6 +1,6 @@
-'''
+"""
 docs
-'''
+"""
 
 import json
 
@@ -16,7 +16,7 @@ class ServicesAPI(object):
 
     @classmethod
     def fromclientcredentials(cls, client_id, client_secret):
-        'docs'
+        "docs"
         # TODO: get tokens then call cls() constructor
         # call cls not ArcgisAPI constructor to support subclassing
         raise NotImplementedError(
@@ -24,11 +24,11 @@ class ServicesAPI(object):
         )
 
     def _add_feature(self, features, layer_url):
-        'docs'
+        "docs"
         raise NotImplementedError()
 
     def add_point(self, lon=None, lat=None, layer_url=None, attributes=None):
-        'docs'
+        "docs"
 
         if None in [lon, lat, layer_url, attributes]:
             raise ValueError("lon, lat, layer_url, and attributes must not be None")
@@ -54,11 +54,10 @@ class ServicesAPI(object):
         if not res["addResults"][0]["success"]:
             raise ArcGISException(res["addResults"][0]["error"]["description"])
 
-        return Feature(res['addResults'][0]['objectId'])
-
+        return Feature(res["addResults"][0]["objectId"])
 
     def create_feature_service(self, name, description):
-        'docs'
+        "docs"
 
         create_service_url = (
             f"{self.base_url}/content/users/{self.username}/createService"
@@ -80,16 +79,15 @@ class ServicesAPI(object):
         if not res.get("success", False):
             raise ArcGISException(res["error"]["message"])
 
-        service = FeatureService(res['itemId'], res['name'], res['encodedServiceURL'])
+        service = FeatureService(res["itemId"], res["name"], res["encodedServiceURL"])
         return service
-
 
     def create_feature_layer(
         self,
         layer_type,
         name,
         description,
-        feature_service_url, # or pass feature service object
+        feature_service_url,  # or pass feature service object
         fields,
         x_min=0,
         y_min=0,
@@ -97,7 +95,7 @@ class ServicesAPI(object):
         y_max=10,
         wkid=4326,
     ):
-        'docs'
+        "docs"
 
         esri_type = ServicesAPI.get_esri_type(layer_type)
 
@@ -138,13 +136,17 @@ class ServicesAPI(object):
             raise ArcGISException(res["error"]["message"])
 
         layer_data = res["layers"][0]
-        _id, _name, _url = layer_data['id'], layer_data['name'], f'{feature_service_url}/{layer_data["id"]}'
+        _id, _name, _url = (
+            layer_data["id"],
+            layer_data["name"],
+            f'{feature_service_url}/{layer_data["id"]}',
+        )
 
         layer = FeatureLayer(_id, _name, _url)
         return layer
 
     def delete_feature_layers(self, layer_ids, feature_service_url):
-        'docs'
+        "docs"
 
         delete_layers_url = (
             feature_service_url.replace("/services/", "/admin/services/")
@@ -167,7 +169,7 @@ class ServicesAPI(object):
         return True
 
     def delete_feature_service(self, service_id):
-        'docs'
+        "docs"
 
         delete_service_url = (
             f"{self.base_url}/content/users/{self.username}/items/{service_id}/delete"
@@ -181,7 +183,7 @@ class ServicesAPI(object):
         return True
 
     def get_feature_layer(self, feature_service_url, layer_id=None, layer_name=None):
-        'docs'
+        "docs"
 
         res = self.requester.GET(feature_service_url)
 
@@ -193,11 +195,15 @@ class ServicesAPI(object):
                 layer_name and layer_name == layer["name"]
             ):
 
-                _id, _name, _url = layer['id'], layer['name'], f'{feature_service_url}/{layer["id"]}'
+                _id, _name, _url = (
+                    layer["id"],
+                    layer["name"],
+                    f'{feature_service_url}/{layer["id"]}',
+                )
                 return FeatureLayer(_id, _name, _url)
 
     def get_feature_services(self, keyword, owner_username=None):
-        'docs'
+        "docs"
 
         service_owner = owner_username or self.username
         search_url = f"{self.base_url}/search"
@@ -208,12 +214,14 @@ class ServicesAPI(object):
         res = self.requester.GET(search_url, params)
 
         if res.get("results"):
-            return [FeatureService(s['id'], s['name'], s['url']) for s in res["results"]]
+            return [
+                FeatureService(s["id"], s["name"], s["url"]) for s in res["results"]
+            ]
 
     def update_feature_service(self, feature_service_id, title=None):
-        'docs'
+        "docs"
 
-        update_service_url = f'{self.base_url}/content/users/{self.username}/items/{feature_service_id}/update'
+        update_service_url = f"{self.base_url}/content/users/{self.username}/items/{feature_service_id}/update"
 
         data = {
             "title": title,
@@ -230,11 +238,9 @@ class ServicesAPI(object):
 
     @staticmethod
     def get_esri_type(layer_type):
-        'docs'
+        "docs"
 
         if layer_type == "point":
             return "esriGeometryPoint"
         else:
             raise NotImplementedError("Non-point geometries not implemented yet")
-
-
