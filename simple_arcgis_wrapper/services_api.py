@@ -5,7 +5,7 @@ docs
 import json
 
 from .exceptions import ArcGISException
-from .models import FeatureLayer, FeatureService
+from .models import Feature, FeatureLayer, FeatureService
 
 
 class ServicesAPI(object):
@@ -54,7 +54,8 @@ class ServicesAPI(object):
         if not res["addResults"][0]["success"]:
             raise ArcGISException(res["addResults"][0]["error"]["description"])
 
-        return {"id": res["addResults"][0]["objectId"]}
+        return Feature(res['addResults'][0]['objectId'])
+
 
     def create_feature_service(self, name, description):
         'docs'
