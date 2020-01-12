@@ -6,9 +6,10 @@ import urllib.parse
 
 class FeatureService(object):
 
-    def __init__(self, id, name, url):
+    def __init__(self, id, name, title, url):
         self._id = id
         self._name = name
+        self._title = title
         self._url = urllib.parse.quote(url, safe='%/:?=&')
 
     @property
@@ -18,6 +19,10 @@ class FeatureService(object):
     @property
     def name(self):
         return self._name
+
+    @property
+    def title(self):
+        return self._title
 
     @property
     def url(self):

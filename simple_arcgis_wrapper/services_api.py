@@ -79,7 +79,7 @@ class ServicesAPI(object):
         if not res.get("success", False):
             raise ArcGISException(res["error"]["message"])
 
-        service = FeatureService(res["itemId"], res["name"], res["encodedServiceURL"])
+        service = FeatureService(res['itemId'], res['name'], res['name'], res['encodedServiceURL'])
         return service
 
     def create_feature_layer(
@@ -212,10 +212,9 @@ class ServicesAPI(object):
         }
 
         res = self.requester.GET(search_url, params)
-
         for result in res.get('results', []):
             if name == result['name']:
-                return FeatureService(result['id'], result['name'], result['url'])
+                return FeatureService(result['id'], result['name'], result['title'], result['url'])
 
 
     def update_feature_service(self, feature_service_id, title=None):
@@ -223,6 +222,7 @@ class ServicesAPI(object):
 
         update_service_url = f'{self.base_url}/content/users/{self.username}/items/{feature_service_id}/update'
 
+        # this does not change the service name, only the title
         data = {
             'title': title,
             # todo: add other attributes...

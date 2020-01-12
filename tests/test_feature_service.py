@@ -1,5 +1,6 @@
 
 import random
+import time
 import unittest
 
 import simple_arcgis_wrapper as saw
@@ -78,6 +79,29 @@ class TestFeatureService(unittest.TestCase):
 
         self.assertTrue(self.api.services.update_feature_service(feature_service.id, title=f'{feature_service.name} (Updated)'))
         self.assertTrue(self.api.services.delete_feature_service(feature_service.id))
+
+
+    def test_update_and_get_feature_service(self):
+
+        name1 = 'SAW Update and Get'
+        name2 = f'{name1} (Updated)'
+
+        feature_service = self.create_feature_service(name=name1)
+        self.assertTrue(self.api.services.update_feature_service(feature_service.id, title=name2))
+
+        # the update takes some time to take effect
+        time.sleep(5)
+
+        # when you change the title, the name will remain the same
+        service = self.api.services.get_feature_service(name=name1)
+
+        self.assertIsNotNone(service)
+        self.assertEqual(service.name, name1)
+        self.assertEqual(service.title, name2)
+
+        self.assertTrue(self.api.services.delete_feature_service(service.id))
+
+
 
 
 
