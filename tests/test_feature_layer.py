@@ -30,26 +30,6 @@ class TestFeatureLayer(unittest.TestCase):
 
         self.assertTrue(api.services.delete_feature_layers([fl.id], feature_service.url))
 
-    def test_create_point(self):
-
-        api = self.__class__.api
-        feature_service = self.__class__.feature_service
-
-        # create the feature layer to add points to
-        fl = TestFeatureLayer.create_point_feature_layer('Test Create Point', api, feature_service)
-
-        attributes = {
-            'Date': '2020-01-01 15:30:45',
-            'Name': 'John Doe',
-            'Altitude': 12.5
-        }
-
-        point_feature = api.services.add_point(lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes)
-
-        self.assertIsNotNone(point_feature)
-
-    def test_create_points(self):
-        pass
 
     def test_get_feature_layer(self):
 

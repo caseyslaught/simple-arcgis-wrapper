@@ -49,11 +49,27 @@ class FeatureLayer(object):
         return self._url
 
 
-class Feature(object):
+class PointFeature(object):
 
-    def __init__(self, id):
+    def __init__(self, id, x, y):
         self._id = id
+        self._x = x
+        self._y = y
 
     @property
     def id(self):
         return self._id
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+
+
+
+
+        
