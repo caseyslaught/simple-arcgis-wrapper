@@ -6,6 +6,8 @@ from .users_api import UsersAPI
 
 class ArcgisAPI(object):
 
+    # TODO: possibly check if tokens and client id are legit right away cause it can cause sneaky problems
+
     ARCGIS_BASE_URL = "https://www.arcgis.com/sharing/rest"
 
     def __init__(

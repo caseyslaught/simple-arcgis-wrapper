@@ -50,6 +50,9 @@ class ServicesAPI(object):
         create_feature_url = f"{layer_url}/addFeatures"
         res = self.requester.POST(create_feature_url, data)
 
+        if res.get("error", False):
+            raise ArcGISException(res["error"].get("message", "add_point error"))
+
         if not res["addResults"][0]["success"]:
             raise ArcGISException(res["addResults"][0]["error"]["description"])
 
