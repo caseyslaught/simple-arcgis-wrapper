@@ -6,13 +6,18 @@ from tests import AGOL_ACCESS_TOKEN, AGOL_CLIENT_ID, AGOL_REFRESH_TOKEN, AGOL_US
 
 
 class TestFeatureLayer(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         random.seed(3141592)
-        api = saw.ArcgisAPI(access_token=AGOL_ACCESS_TOKEN, refresh_token=AGOL_REFRESH_TOKEN, 
-                             client_id=AGOL_CLIENT_ID, username=AGOL_USERNAME)
-        feature_service = api.services.create_feature_service(f'Testing {random.randint(0, 99)}', 'This is a test.')
+        api = saw.ArcgisAPI(
+            access_token=AGOL_ACCESS_TOKEN,
+            refresh_token=AGOL_REFRESH_TOKEN,
+            client_id=AGOL_CLIENT_ID,
+            username=AGOL_USERNAME,
+        )
+        feature_service = api.services.create_feature_service(
+            f"Testing {random.randint(0, 99)}", "This is a test."
+        )
         cls.api = api
         cls.feature_service = feature_service
 
@@ -25,30 +30,36 @@ class TestFeatureLayer(unittest.TestCase):
 
         api = self.__class__.api
         feature_service = self.__class__.feature_service
-        
-        fl = TestFeatureLayer.create_point_feature_layer('Test Create Point Layer', api, feature_service)
 
-        self.assertTrue(api.services.delete_feature_layers([fl.id], feature_service.url))
+        fl = TestFeatureLayer.create_point_feature_layer(
+            "Test Create Point Layer", api, feature_service
+        )
 
+        self.assertTrue(
+            api.services.delete_feature_layers([fl.id], feature_service.url)
+        )
 
     def test_get_feature_layer(self):
 
         api = self.__class__.api
         feature_service = self.__class__.feature_service
 
-        fl = TestFeatureLayer.create_point_feature_layer('Test Get Layer', api, feature_service)
-        
+        fl = TestFeatureLayer.create_point_feature_layer(
+            "Test Get Layer", api, feature_service
+        )
+
         fl_id = api.services.get_feature_layer(feature_service.url, layer_id=fl.id)
-        fl_name = api.services.get_feature_layer(feature_service.url, layer_id=fl.id)
+        fl_name = api.services.get_feature_layer(
+            feature_service.url, layer_name=fl.name
+        )
 
         self.assertIsNotNone(fl_id)
-        self.assertEqual(fl_id.id, fl.id)    
+        self.assertEqual(fl_id.id, fl.id)
         self.assertEqual(fl_id.name, fl.name)
 
         self.assertIsNotNone(fl_name)
-        self.assertEqual(fl_name.id, fl.id)    
+        self.assertEqual(fl_name.id, fl.id)
         self.assertEqual(fl_name.name, fl.name)
-
 
     @staticmethod
     def create_point_feature_layer(name, api, feature_service):
@@ -58,15 +69,16 @@ class TestFeatureLayer(unittest.TestCase):
         layer_fields.add_field(name="Name", field=saw.fields.StringField)
         layer_fields.add_field(name="Altitude", field=saw.fields.DoubleField)
 
-        fl = api.services.create_feature_layer(layer_type='point', name=name, description='My test description', 
-                                         feature_service_url=feature_service.url, fields=layer_fields, 
-                                         x_min=10.0, y_min=10.0, x_max=20.0, y_max=20.0, wkid=4326)
+        fl = api.services.create_feature_layer(
+            layer_type="point",
+            name=name,
+            description="My test description",
+            feature_service_url=feature_service.url,
+            fields=layer_fields,
+            x_min=10.0,
+            y_min=10.0,
+            x_max=20.0,
+            y_max=20.0,
+            wkid=4326,
+        )
         return fl
-
-
-
-
-
-
-
-

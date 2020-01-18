@@ -16,7 +16,7 @@ class ServicesAPI(object):
 
     @classmethod
     def fromclientcredentials(cls, client_id, client_secret):
-        'docs'
+        "docs"
         # TODO: get tokens then call cls() constructor
         # call cls not ArcgisAPI constructor to support subclassing
         raise NotImplementedError(
@@ -24,11 +24,11 @@ class ServicesAPI(object):
         )
 
     def _add_feature(self, features, layer_url):
-        'docs'
+        "docs"
         raise NotImplementedError()
 
     def add_point(self, lon=None, lat=None, layer_url=None, attributes=None):
-        'docs'
+        "docs"
 
         if None in [lon, lat, layer_url, attributes]:
             raise ValueError("lon, lat, layer_url, and attributes must not be None")
@@ -42,10 +42,7 @@ class ServicesAPI(object):
         x, y = round(lon, 8), round(lat, 8)
 
         features = [
-            {
-                "attributes": attributes,
-                "geometry": {"x": x, "y": y},  # decimal degrees
-            }
+            {"attributes": attributes, "geometry": {"x": x, "y": y},}  # decimal degrees
         ]
 
         data = {"features": json.dumps(features)}
@@ -59,7 +56,7 @@ class ServicesAPI(object):
         return PointFeature(res["addResults"][0]["objectId"], x, y)
 
     def create_feature_service(self, name, description):
-        'docs'
+        "docs"
 
         create_service_url = (
             f"{self.base_url}/content/users/{self.username}/createService"
@@ -81,7 +78,9 @@ class ServicesAPI(object):
         if not res.get("success", False):
             raise ArcGISException(res["error"]["message"])
 
-        service = FeatureService(res['itemId'], res['name'], res['name'], res['encodedServiceURL'])
+        service = FeatureService(
+            res["itemId"], res["name"], res["name"], res["encodedServiceURL"]
+        )
         return service
 
     def create_feature_layer(
@@ -97,7 +96,7 @@ class ServicesAPI(object):
         y_max=10,
         wkid=4326,
     ):
-        'docs'
+        "docs"
 
         esri_type = ServicesAPI.get_esri_type(layer_type)
 
@@ -148,7 +147,7 @@ class ServicesAPI(object):
         return layer
 
     def delete_feature_layers(self, layer_ids, feature_service_url):
-        'docs'
+        "docs"
 
         delete_layers_url = (
             feature_service_url.replace("/services/", "/admin/services/")
@@ -171,7 +170,7 @@ class ServicesAPI(object):
         return True
 
     def delete_feature_service(self, service_id):
-        'docs'
+        "docs"
 
         delete_service_url = (
             f"{self.base_url}/content/users/{self.username}/items/{service_id}/delete"
@@ -185,144 +184,128 @@ class ServicesAPI(object):
         return True
 
     def get_features(self, feature_service_url, layer_id, where, out_fields=[]):
-        'where is an ArcGIS formatted string. out_fields is a list of fields.'
+        "where is an ArcGIS formatted string. out_fields is a list of fields."
 
-        if 'OBJECTID' not in out_fields:
-            out_fields.append('OBJECTID')
+        if "OBJECTID" not in out_fields:
+            out_fields.append("OBJECTID")
 
-        params = {
-            'where': where,
-            'outFields': ','.join(out_fields)
-        }
+        params = {"where": where, "outFields": ",".join(out_fields)}
 
-        query_url = f'{feature_service_url}/{layer_id}/query'
+        query_url = f"{feature_service_url}/{layer_id}/query"
         res = self.requester.GET(query_url, params)
 
-        if res.get('error', False):
-            raise ArcGISException(res['error'].get('message', 'get_features error'))
-            
+        if res.get("error", False):
+            raise ArcGISException(res["error"].get("message", "get_features error"))
+
         features = list()
-        for f in res.get('features', []):
-            if res['geometryType'] == 'esriGeometryPoint':
+        for f in res.get("features", []):
+            if res["geometryType"] == "esriGeometryPoint":
                 features.append(
                     PointFeature(
-                        f['attributes']['OBJECTID'], 
-                        f['geometry']['x'], 
-                        f['geometry']['y']
+                        f["attributes"]["OBJECTID"],
+                        f.get("geometry", {}).get("x"),
+                        f.get("geometry", {}).get("y"),
                     )
                 )
             else:
-                raise NotImplementedError('non-point features not yet implemented')
+                raise NotImplementedError("non-point features not yet implemented")
 
         return features
 
-
     def get_feature_layer(self, feature_service_url, layer_id=None, layer_name=None):
-        'docs'
+        "docs"
 
         res = self.requester.GET(feature_service_url)
+        if res.get("error", False):
+            raise ArcGISException(
+                res["error"].get("message", "get_feature_layer error")
+            )
 
-        if res.get('error', False):
-            raise ArcGISException(res['error'].get('message', 'get_feature_layer error'))
+        for layer in res.get("layers", []):
 
-        for layer in res.get('layers', []):
-            if (layer_id and int(layer_id) == layer['id']) or (
-                layer_name and layer_name == layer['name']
+            # explicitly use is not None because layer_id may be 0
+            if (layer_id is not None and layer_id == layer["id"]) or (
+                layer_name is not None and layer_name == layer["name"]
             ):
-
                 _id, _name, _url = (
-                    layer['id'],
-                    layer['name'],
+                    layer["id"],
+                    layer["name"],
                     f'{feature_service_url}/{layer["id"]}',
                 )
                 return FeatureLayer(_id, _name, _url)
 
     def get_feature_service(self, name, owner_username=None):
-        'docs'
+        "docs"
 
         service_owner = owner_username or self.username
         search_url = f"{self.base_url}/search"
         params = {
-            'q': f'title: {name} AND owner: {service_owner} AND type: "Feature Service"',
+            "q": f'title: {name} AND owner: {service_owner} AND type: "Feature Service"',
         }
 
-        if res.get('error', False):
-            raise ArcGISException(res['error'].get('message', 'get_feature_service error'))
-
         res = self.requester.GET(search_url, params)
-        for result in res.get('results', []):
-            if name == result['name']:
-                return FeatureService(result['id'], result['name'], result['title'], result['url'])
+        if res.get("error", False):
+            raise ArcGISException(
+                res["error"].get("message", "get_feature_service error")
+            )
+
+        for result in res.get("results", []):
+            if name == result["name"]:
+                return FeatureService(
+                    result["id"], result["name"], result["title"], result["url"]
+                )
 
     def update_features(self, updates, layer_id, feature_service_url):
-        '''
+        """
         Batch updates features. 
         updates is a list of tuples.
         Each tuple has 3 elements: (id, attribute_dict, geometry_dict)
-        If not updating attributes or geometry, pass None
-        '''
+        If not updating attributes or geometry, pass None.
+        Incorrect geometries are not validated and will clear the feature's geometry.
+        """
 
-        feature_updates = [
-            {
-                'attributes': {
-                    'OBJECTID': u[0],
-                    **u[1] # fixme: how to pass empty thing?
-                },
-                'geometry': u[2]
-            }
-            for u in updates
-        ]
-
-        # TODO: document this a bit
+        # create updates list by adding additional attributes or geometry key
         feature_updates = []
         for u in updates:
             _id, attributes, geometry = u
-            
+
             if attributes is None and geometry is None:
                 continue
-            
-            fu = {
-                'attributes': {
-                    'OBJECTID': _id
-                }
-            }
+
+            fu = {"attributes": {"OBJECTID": _id}}
 
             if attributes is not None:
-                fu['attributes'] = {**fu['attributes'], **attributes}                
+                fu["attributes"] = {**fu["attributes"], **attributes}
 
             if geometry is not None:
-                fu['geometry'] = geometry
+                fu["geometry"] = geometry
 
             feature_updates.append(fu)
 
         data = {
-            'features': json.dumps(feature_updates),
+            "features": json.dumps(feature_updates),
         }
 
-        update_features_url = f'{feature_service_url}/{layer_id}/updateFeatures'
+        update_features_url = f"{feature_service_url}/{layer_id}/updateFeatures"
         res = self.requester.POST(update_features_url, data)
 
-        return {
-            u['objectId']: u['success'] 
-            for u in res.get('updateResults', [])
-        }
-
+        return {u["objectId"]: u["success"] for u in res.get("updateResults", [])}
 
     def update_feature_service(self, feature_service_id, title=None):
-        'There is a difference between name and title. More docs...'
+        "There is a difference between name and title. More docs..."
 
-        update_service_url = f'{self.base_url}/content/users/{self.username}/items/{feature_service_id}/update'
+        update_service_url = f"{self.base_url}/content/users/{self.username}/items/{feature_service_id}/update"
 
         data = {
-            'title': title,
+            "title": title,
             # todo: add other attributes...
         }
 
         data = {k: v for k, v in data.items() if v is not None}
         res = self.requester.POST(update_service_url, data)
 
-        if not res.get('success', False):
-            raise ArcGISException(res['error']['message'])
+        if not res.get("success", False):
+            raise ArcGISException(res["error"]["message"])
 
         return True
 
@@ -330,7 +313,7 @@ class ServicesAPI(object):
     def get_esri_type(layer_type):
         "docs"
 
-        if layer_type == 'point':
-            return 'esriGeometryPoint'
+        if layer_type == "point":
+            return "esriGeometryPoint"
         else:
-            raise NotImplementedError('Non-point geometries not implemented yet')
+            raise NotImplementedError("Non-point geometries not implemented yet")

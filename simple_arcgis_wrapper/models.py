@@ -1,16 +1,16 @@
-'''
+"""
 
-'''
+"""
 
 import urllib.parse
 
-class FeatureService(object):
 
+class FeatureService(object):
     def __init__(self, id, name, title, url):
         self._id = id
         self._name = name
         self._title = title
-        self._url = urllib.parse.quote(url, safe='%/:?=&')
+        self._url = urllib.parse.quote(url, safe="%/:?=&")
 
     @property
     def id(self):
@@ -30,11 +30,10 @@ class FeatureService(object):
 
 
 class FeatureLayer(object):
-
     def __init__(self, id, name, url):
         self._id = id
         self._name = name
-        self._url = urllib.parse.quote(url, safe='%/:?=&')
+        self._url = urllib.parse.quote(url, safe="%/:?=&")
 
     @property
     def id(self):
@@ -50,7 +49,6 @@ class FeatureLayer(object):
 
 
 class PointFeature(object):
-
     def __init__(self, id, x, y):
         self._id = id
         self._x = x
@@ -67,9 +65,3 @@ class PointFeature(object):
     @property
     def y(self):
         return self._y
-
-
-
-
-
-        

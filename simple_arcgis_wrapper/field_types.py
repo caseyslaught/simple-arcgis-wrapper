@@ -5,7 +5,7 @@ DateField = {
     "editable": True,
     "domain": None,
     "defaultValue": None,
-    "length": 256
+    "length": 256,
 }
 
 DoubleField = {
@@ -25,7 +25,7 @@ _ObjectIdField = {
     "nullable": False,
     "editable": False,
     "domain": None,
-    "defaultValue": None
+    "defaultValue": None,
 }
 
 StringField = {
@@ -35,10 +35,5 @@ StringField = {
     "editable": True,
     "domain": None,
     "defaultValue": None,
-    "length": 256
+    "length": 256,
 }
-
-
-
-
-

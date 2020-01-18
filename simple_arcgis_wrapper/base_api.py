@@ -1,6 +1,0 @@
-
-
-
-class BaseAPI(object):
-
-    pass
