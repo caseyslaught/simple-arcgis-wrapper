@@ -1,14 +1,16 @@
+import json
 import requests
+import os
 
+from .exceptions import ArcGISException
 from .services_api import ServicesAPI
 from .users_api import UsersAPI
 
 
 class ArcgisAPI(object):
 
-    # TODO: possibly check if tokens and client id are legit right away cause it can cause sneaky problems
-
-    ARCGIS_BASE_URL = "https://www.arcgis.com/sharing/rest"
+    ARCGIS_BASE_URL = "https://www.arcgis.com/sharing"
+    ARCGIS_REST_BASE_URL = f"{ARCGIS_BASE_URL}/rest"
 
     def __init__(
         self,
@@ -16,29 +18,27 @@ class ArcgisAPI(object):
         refresh_token=None,
         client_id=None,
         username=None,
-        base_url=ARCGIS_BASE_URL,
+        base_url=ARCGIS_REST_BASE_URL,
     ):
+
+        # 1. use constructor argument
+        # 2. use environment variable
+        # 3. use None
 
         try:
             self.access_token = access_token or os.environ["ARCGIS_ACCESS_TOKEN"]
         except KeyError:
-            raise KeyError(
-                "access token not found. Pass access_token as a kwarg or set an env var ARCGIS_ACCESS_TOKEN"
-            )
+            self.access_token = None
 
         try:
             self.refresh_token = refresh_token or os.environ["ARCGIS_REFRESH_TOKEN"]
         except KeyError:
-            raise KeyError(
-                "refresh token not found. Pass refresh_token as a kwarg or set an env var ARCGIS_REFRESH_TOKEN"
-            )
+            self.refresh_token = None
 
         try:
             self.client_id = client_id or os.environ["ARCGIS_CLIENT_ID"]
         except KeyError:
-            raise KeyError(
-                "client ID not found. Pass client_id as a kwarg or set an env var ARCGIS_CLIENT_ID"
-            )
+            self.client_id = None
 
         try:
             self.username = username or os.environ["ARCGIS_USERNAME"]
@@ -50,14 +50,34 @@ class ArcgisAPI(object):
         self.base_url = base_url
         self.requester = Requester(access_token, refresh_token, client_id, base_url)
 
+        # access_token cannot be empty or None when making a request so initialize it here
+        if not access_token and refresh_token:
+            self.requester._refresh_access_token()
+
         # register APIs
         self.services = ServicesAPI(
             base_url=base_url, requester=self.requester, username=username
         )
-        # self.users = UsersAPI(self.requester)
 
     def close(self):
         self.requester.session.close()
+
+    @classmethod
+    def fromusernamepassword(cls, username, password, base_url=ARCGIS_BASE_URL):
+
+        token_url = f"{base_url}/generateToken"
+        payload = {
+            "username": username,
+            "password": password,
+            "referer": "www.arcgis.com",
+            "f": "json",
+        }
+
+        res = requests.post(token_url, data=payload).json()
+        if "error" in res:
+            raise ArcGISException(res["error"]["message"])
+
+        return cls(access_token=res["token"], username=username)
 
     # TODO: add properties
 
@@ -74,8 +94,11 @@ class Requester(object):
         self.base_url = base_url
 
     def _process_response(self, response):
-        "docs"
-        return response.json()
+        "Return JSON"
+        try:
+            return response.json()
+        except json.decoder.JSONDecodeException:
+            raise ArcGISException("ArcGIS response error. Try again later.")
 
     def _refresh_access_token(self):
         "docs"
@@ -95,10 +118,9 @@ class Requester(object):
         processed_response = self._process_response(res)
 
         if processed_response.get("error"):
-            return False
-        else:
-            self.access_token = processed_response["access_token"]
-            return True
+            raise ArcGISException(processed_response["error"]["message"])
+
+        self.access_token = processed_response["access_token"]
 
     def _request(self, method, url, params=None, data=None):
         "docs"
@@ -112,17 +134,16 @@ class Requester(object):
         # handle access token expired
         if processed_response.get("error"):
             if processed_response["error"].get("code") in [498, 499]:
-                if self._refresh_access_token():
 
-                    if method == "get":
-                        params["token"] = self.access_token
-                    elif method == "post":
-                        data["token"] = self.access_token
+                self._refresh_access_token()
 
-                    response = self.session.request(
-                        method, url, params=params, data=data
-                    )
-                    processed_response = self._process_response(response)
+                if method == "get":
+                    params["token"] = self.access_token
+                elif method == "post":
+                    data["token"] = self.access_token
+
+                response = self.session.request(method, url, params=params, data=data)
+                processed_response = self._process_response(response)
 
         return processed_response
 

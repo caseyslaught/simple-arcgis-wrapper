@@ -1,6 +1,7 @@
 import unittest
-
 import simple_arcgis_wrapper as saw
+
+from tests import AGOL_PASSWORD, AGOL_USERNAME
 
 
 class TestFields(unittest.TestCase):

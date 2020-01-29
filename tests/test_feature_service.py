@@ -7,6 +7,7 @@ from tests import AGOL_ACCESS_TOKEN, AGOL_CLIENT_ID, AGOL_REFRESH_TOKEN, AGOL_US
 
 
 class TestFeatureService(unittest.TestCase):
+    
     @classmethod
     def setUpClass(cls):
         random.seed(652589)

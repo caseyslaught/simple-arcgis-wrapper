@@ -24,16 +24,16 @@ class TestFeature(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # cls.api.services.delete_feature_service(cls.feature_service.id)
+        cls.api.services.delete_feature_service(cls.feature_service.id)
         cls.api.close()
 
-    def test_create_point_feature(self):
+    def test_add_point(self):
 
         api = self.__class__.api
         feature_service = self.__class__.feature_service
 
         fl = TestFeature.create_point_feature_layer(
-            "Test Create Feature", api, feature_service
+            "Test Add Point", api, feature_service
         )
 
         attributes = {
@@ -42,13 +42,103 @@ class TestFeature(unittest.TestCase):
             "DeviceId": "abc123",
         }
 
-        point_feature = api.services.add_point(
-            lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes
+        add = api.services.add_point(
+            lon=10.0, lat=20.0, attributes=attributes,
+            layer_id=fl.id, feature_service_url=feature_service.url
         )
-        self.assertIsNotNone(point_feature)
-        self.assertTrue(
-            api.services.delete_feature_layers([fl.id], feature_service.url)
+        self.assertTrue(add)
+
+    def test_add_points(self):
+
+        api = self.__class__.api
+        feature_service = self.__class__.feature_service
+
+        fl = TestFeature.create_point_feature_layer(
+            "Test Add Points", api, feature_service
         )
+
+        attributes = {
+            "Date": "2020-01-01 15:30:45",
+            "Name": "John Doe",
+            "DeviceId": "abc123",
+        }
+
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p3 = {'lon': 10.0, 'lat': 20.0, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
+
+        self.assertIsNotNone(adds)
+        self.assertEqual(len(adds), 3)
+        for k, v in adds.items():
+            self.assertTrue(v)
+
+    def test_delete_features_object_ids(self):
+
+        api = self.__class__.api
+        feature_service = self.__class__.feature_service
+
+        fl = TestFeature.create_point_feature_layer(
+            "Test Delete Features - Object IDs", api, feature_service
+        )
+
+        attributes = {
+            "Date": "2020-01-01 15:30:45",
+            "Name": "John Doe",
+            "DeviceId": "abc123",
+        }
+
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p3 = {'lon': 10.0, 'lat': 20.0, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
+        object_ids = list(adds.keys())
+
+        deletes = api.services.delete_features(
+            object_ids=object_ids,
+            layer_id=fl.id,
+            feature_service_url=feature_service.url
+        )
+
+        self.assertIsNotNone(deletes)
+        self.assertEqual(len(deletes), 3)
+        for k, v in deletes.items():
+            self.assertTrue(v)
+
+    def test_delete_features_where(self):
+
+        api = self.__class__.api
+        feature_service = self.__class__.feature_service
+
+        fl = TestFeature.create_point_feature_layer(
+            "Test Delete Features - Where", api, feature_service
+        )
+
+        attributes = {
+            "Date": "2020-01-01 15:30:45",
+            "Name": "John Doe",
+            "DeviceId": "abc123",
+        }
+
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p3 = {'lon': 10.0, 'lat': 20.0, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
+
+        deletes = api.services.delete_features(
+            where="DeviceId = 'abc123'",
+            layer_id=fl.id,
+            feature_service_url=feature_service.url
+        )
+
+        self.assertIsNotNone(deletes)
+        self.assertEqual(len(deletes), 3)
+        for k, v in deletes.items():
+            self.assertTrue(v)
+
 
     def test_get_features(self):
 
@@ -65,18 +155,17 @@ class TestFeature(unittest.TestCase):
             "DeviceId": "abc123",
         }
 
-        point_feature1 = api.services.add_point(
-            lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes
-        )
-        point_feature2 = api.services.add_point(
-            lon=10.2, lat=20.2, layer_url=fl.url, attributes=attributes
-        )
-        point_feature3 = api.services.add_point(
-            lon=10.4, lat=20.4, layer_url=fl.url, attributes=attributes
-        )
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.2, 'lat': 20.2, **attributes}
+        p3 = {'lon': 10.4, 'lat': 20.4, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
 
         features = api.services.get_features(
-            feature_service.url, fl.id, "DeviceId = 'abc123'", ["OBJECTID"]
+            where="DeviceId = 'abc123'",
+            layer_id=fl.id,
+            feature_service_url=feature_service.url,
+            out_fields=['OBJECTID']
         )
         self.assertIsNotNone(features)
         self.assertTrue(isinstance(features[0], PointFeature))
@@ -97,19 +186,18 @@ class TestFeature(unittest.TestCase):
             "DeviceId": "abc123",
         }
 
-        point_feature1 = api.services.add_point(
-            lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes
-        )
-        point_feature2 = api.services.add_point(
-            lon=10.2, lat=20.2, layer_url=fl.url, attributes=attributes
-        )
-        point_feature3 = api.services.add_point(
-            lon=10.4, lat=20.4, layer_url=fl.url, attributes=attributes
-        )
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.2, 'lat': 20.2, **attributes}
+        p3 = {'lon': 10.4, 'lat': 20.4, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
 
         with self.assertRaises(saw.exceptions.ArcGISException):
             features = api.services.get_features(
-                feature_service.url, fl.id, "asdf = 100", ["OBJECTID"]
+                where="asdf = 666",
+                layer_id=fl.id,
+                feature_service_url=feature_service.url,
+                out_fields=['OBJECTID']
             )
 
     def test_get_features_bad_out_fields(self):
@@ -127,19 +215,18 @@ class TestFeature(unittest.TestCase):
             "DeviceId": "abc123",
         }
 
-        point_feature1 = api.services.add_point(
-            lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes
-        )
-        point_feature2 = api.services.add_point(
-            lon=10.2, lat=20.2, layer_url=fl.url, attributes=attributes
-        )
-        point_feature3 = api.services.add_point(
-            lon=10.4, lat=20.4, layer_url=fl.url, attributes=attributes
-        )
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.2, 'lat': 20.2, **attributes}
+        p3 = {'lon': 10.4, 'lat': 20.4, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
 
         with self.assertRaises(saw.exceptions.ArcGISException):
             features = api.services.get_features(
-                feature_service.url, fl.id, "DeviceId = 'abc123'", ["asdf", "qwerty"]
+                where="DeviceId = 'abc123'",
+                layer_id=fl.id,
+                feature_service_url=feature_service.url,
+                out_fields=['shwifty']
             )
 
     def test_update_features(self):
@@ -157,29 +244,26 @@ class TestFeature(unittest.TestCase):
             "DeviceId": "abc123",
         }
 
-        point_feature1 = api.services.add_point(
-            lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes
-        )
-        point_feature2 = api.services.add_point(
-            lon=10.2, lat=20.2, layer_url=fl.url, attributes=attributes
-        )
-        point_feature3 = api.services.add_point(
-            lon=10.4, lat=20.4, layer_url=fl.url, attributes=attributes
-        )
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.2, 'lat': 20.2, **attributes}
+        p3 = {'lon': 10.4, 'lat': 20.4, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
 
         features = api.services.get_features(
-            feature_service.url, fl.id, "DeviceId = 'abc123'", ["OBJECTID"]
+            where="DeviceId = 'abc123'",
+            layer_id=fl.id,
+            feature_service_url=feature_service.url,
+            out_fields=['OBJECTID']
         )
 
         updates = [
             (f.id, {"Name": "Casey Jones"}, {"x": 10.1, "y": 20.1}) for f in features
         ]
 
-        # results is a dict of objectId: success (True/False)
-        results = api.services.update_features(updates, fl.id, feature_service.url)
-        self.assertTrue(results[updates[0][0]])
-        self.assertTrue(results[updates[1][0]])
-        self.assertTrue(results[updates[2][0]])
+        updates_res = api.services.update_features(updates, fl.id, feature_service.url)
+        for k, v in updates_res.items():
+            self.assertTrue(v)
 
     def test_update_features_bad_attributes(self):
 
@@ -196,26 +280,24 @@ class TestFeature(unittest.TestCase):
             "DeviceId": "abc123",
         }
 
-        point_feature1 = api.services.add_point(
-            lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes
-        )
-        point_feature2 = api.services.add_point(
-            lon=10.2, lat=20.2, layer_url=fl.url, attributes=attributes
-        )
-        point_feature3 = api.services.add_point(
-            lon=10.4, lat=20.4, layer_url=fl.url, attributes=attributes
-        )
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.2, 'lat': 20.2, **attributes}
+        p3 = {'lon': 10.4, 'lat': 20.4, **attributes}
+
+        api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
 
         features = api.services.get_features(
-            feature_service.url, fl.id, "DeviceId = 'abc123'", ["OBJECTID"]
+            where="DeviceId = 'abc123'",
+            layer_id=fl.id,
+            feature_service_url=feature_service.url,
+            out_fields=['OBJECTID']
         )
 
-        updates = [(f.id, {"asdf": "lalalala"}, None) for f in features]
+        updates = [(f.id, {"letsget": "shwifty"}, None) for f in features]
 
-        results = api.services.update_features(updates, fl.id, feature_service.url)
-        self.assertFalse(results[updates[0][0]])
-        self.assertFalse(results[updates[1][0]])
-        self.assertFalse(results[updates[2][0]])
+        updates_res = api.services.update_features(updates, fl.id, feature_service.url)
+        for k, v in updates_res.items():
+            self.assertFalse(v)
 
     def test_update_features_bad_geometry(self):
 
@@ -232,18 +314,17 @@ class TestFeature(unittest.TestCase):
             "DeviceId": "abc123",
         }
 
-        point_feature1 = api.services.add_point(
-            lon=10.0, lat=20.0, layer_url=fl.url, attributes=attributes
-        )
-        point_feature2 = api.services.add_point(
-            lon=10.2, lat=20.2, layer_url=fl.url, attributes=attributes
-        )
-        point_feature3 = api.services.add_point(
-            lon=10.4, lat=20.4, layer_url=fl.url, attributes=attributes
-        )
+        p1 = {'lon': 10.0, 'lat': 20.0, **attributes}
+        p2 = {'lon': 10.2, 'lat': 20.2, **attributes}
+        p3 = {'lon': 10.4, 'lat': 20.4, **attributes}
+
+        adds = api.services.add_points([p1, p2, p3], fl.id, feature_service.url)
 
         features = api.services.get_features(
-            feature_service.url, fl.id, "DeviceId = 'abc123'", ["OBJECTID"]
+            where="DeviceId = 'abc123'",
+            layer_id=fl.id,
+            feature_service_url=feature_service.url,
+            out_fields=['OBJECTID']
         )
 
         updates = [
@@ -251,20 +332,18 @@ class TestFeature(unittest.TestCase):
         ]
 
         # results is a dict of objectId: success (True/False)
-        results = api.services.update_features(updates, fl.id, feature_service.url)
-
-        self.assertIsNotNone(
-            api.services.get_features(
-                feature_service.url, fl.id, "DeviceId = 'abc123'", ["OBJECTID"]
-            )
-        )
-        self.assertTrue(results[updates[0][0]])
-        self.assertTrue(results[updates[1][0]])
-        self.assertTrue(results[updates[2][0]])
+        updates_res = api.services.update_features(updates, fl.id, feature_service.url)
+        for k, v in updates_res.items():
+            self.assertTrue(v)
 
         features = api.services.get_features(
-            feature_service.url, fl.id, "DeviceId = 'abc123'", ["OBJECTID"]
+            where="DeviceId = 'abc123'",
+            layer_id=fl.id,
+            feature_service_url=feature_service.url,
+            out_fields=['OBJECTID']
         )
+
+        self.assertIsNotNone(features)
 
     @staticmethod
     def create_point_feature_layer(name, api, feature_service):

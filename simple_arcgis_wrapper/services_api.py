@@ -8,32 +8,23 @@ from .exceptions import ArcGISException
 from .models import FeatureLayer, FeatureService, PointFeature
 
 
+# TODO: use layer_url or layer_id + feature_service_url?
+
+
 class ServicesAPI(object):
     def __init__(self, base_url, requester, username):
         self.base_url = base_url
         self.requester = requester
         self.username = username
 
-    @classmethod
-    def fromclientcredentials(cls, client_id, client_secret):
-        "docs"
-        # TODO: get tokens then call cls() constructor
-        # call cls not ArcgisAPI constructor to support subclassing
-        raise NotImplementedError(
-            "Client credentials initialization not yet implemented"
-        )
-
     def _add_feature(self, features, layer_url):
         "docs"
         raise NotImplementedError()
 
-    def add_point(self, lon=None, lat=None, layer_url=None, attributes=None):
+    def add_point(self, lon, lat, attributes, layer_id, feature_service_url):
         "docs"
 
-        if None in [lon, lat, layer_url, attributes]:
-            raise ValueError("lon, lat, layer_url, and attributes must not be None")
-
-        if abs(lon) > 180:
+        if abs(lon) > 180: # TODO: let ArcGIS reject this?
             raise ValueError("invalid x value")
 
         if abs(lat) > 90:
@@ -47,8 +38,8 @@ class ServicesAPI(object):
 
         data = {"features": json.dumps(features)}
 
-        create_feature_url = f"{layer_url}/addFeatures"
-        res = self.requester.POST(create_feature_url, data)
+        add_features_url = f"{feature_service_url}/{layer_id}/addFeatures"
+        res = self.requester.POST(add_features_url, data)
 
         if res.get("error", False):
             raise ArcGISException(res["error"].get("message", "add_point error"))
@@ -56,7 +47,38 @@ class ServicesAPI(object):
         if not res["addResults"][0]["success"]:
             raise ArcGISException(res["addResults"][0]["error"]["description"])
 
-        return PointFeature(res["addResults"][0]["objectId"], x, y)
+        #return PointFeature(res["addResults"][0]["objectId"], x, y)
+        return res['addResults'][0]['success']
+
+    def add_points(self, points, layer_id, feature_service_url):
+        "points is a list of dicts. Each dict must contain lon, lat and any required attributes."
+
+        # TODO: convert Decimal to str %0.2f?
+
+        features = list()
+        for point in points:
+            try:
+                lon = point.pop('lon')
+                lat = point.pop('lat')
+            except KeyError:
+                continue
+            
+            features.append({
+                "geometry" : {"x" : lon, "y" : lat}, 
+                "attributes" : {**point}
+            })
+        
+        data = {
+            'features': json.dumps(features)
+        }
+
+        add_features_url = f"{feature_service_url}/{layer_id}/addFeatures"
+        res = self.requester.POST(add_features_url, data)
+
+        if res.get("error", False):
+            raise ArcGISException(res["error"].get("message", "add_points error"))
+
+        return {u["objectId"]: u["success"] for u in res.get("addResults", [])}
 
     def create_feature_service(self, name, description):
         "docs"
@@ -149,6 +171,28 @@ class ServicesAPI(object):
         layer = FeatureLayer(_id, _name, _url)
         return layer
 
+    def delete_features(self, layer_id, feature_service_url, object_ids=None, where=None):
+        "docs"
+
+        if object_ids is None and where is None:
+            raise ValueError('object_ids or where required')
+
+        data = dict()
+
+        if object_ids is not None:
+            data['objectIds'] = ', '.join([str(_id) for _id in object_ids]) # convert each id to str first
+
+        if where is not None:
+            data['where'] = where
+
+        delete_features_url = f'{feature_service_url}/{layer_id}/deleteFeatures'
+        res = self.requester.POST(delete_features_url, data)
+       
+        if res.get("error", False):
+            raise ArcGISException(res["error"].get("message", "delete_features error"))
+
+        return {u["objectId"]: u["success"] for u in res.get("deleteResults", [])}
+
     def delete_feature_layers(self, layer_ids, feature_service_url):
         "docs"
 
@@ -186,7 +230,7 @@ class ServicesAPI(object):
 
         return True
 
-    def get_features(self, feature_service_url, layer_id, where, out_fields=[]):
+    def get_features(self, where, layer_id, feature_service_url, out_fields=[]):
         "where is an ArcGIS formatted string. out_fields is a list of fields."
 
         if "OBJECTID" not in out_fields:
@@ -291,7 +335,6 @@ class ServicesAPI(object):
 
         update_features_url = f"{feature_service_url}/{layer_id}/updateFeatures"
         res = self.requester.POST(update_features_url, data)
-
         return {u["objectId"]: u["success"] for u in res.get("updateResults", [])}
 
     def update_feature_service(self, feature_service_id, title=None):
