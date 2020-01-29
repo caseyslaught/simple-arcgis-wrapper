@@ -14,8 +14,6 @@ class ArcgisAPI(object):
     ARCGIS_BASE_URL = "https://www.arcgis.com/sharing"
     ARCGIS_REST_BASE_URL = f"{ARCGIS_BASE_URL}/rest"
 
-    # is constructor being passed arguments from ...
-
     def __init__(
         self,
         access_token=None,
@@ -29,23 +27,28 @@ class ArcgisAPI(object):
         # option 2. use environment variable (unless fromusernamepassword then None)
         # option 3. use None
 
-        is_pwd_auth = inspect.stack()[1].function == 'fromusernamepassword'
+        is_pwd_auth = inspect.stack()[1].function == "fromusernamepassword"
 
         try:
-            self.access_token = access_token or os.environ["ARCGIS_ACCESS_TOKEN"]
+            access_token = access_token or os.environ["ARCGIS_ACCESS_TOKEN"]
         except KeyError:
-            self.access_token = None
-
-        # if username and password, refresh_token will use envar
-        try:
-            self.refresh_token = refresh_token or os.environ["ARCGIS_REFRESH_TOKEN"] if not is_pwd_auth else None
-        except KeyError:
-            self.refresh_token = None
+            access_token = None
 
         try:
-            self.client_id = client_id or os.environ["ARCGIS_CLIENT_ID"] if not is_pwd_auth else None
+            refresh_token = (
+                refresh_token or os.environ["ARCGIS_REFRESH_TOKEN"]
+                if not is_pwd_auth
+                else None
+            )
         except KeyError:
-            self.client_id = None
+            refresh_token = None
+
+        try:
+            client_id = (
+                client_id or os.environ["ARCGIS_CLIENT_ID"] if not is_pwd_auth else None
+            )
+        except KeyError:
+            client_id = None
 
         try:
             self.username = username or os.environ["ARCGIS_USERNAME"]
@@ -56,7 +59,7 @@ class ArcgisAPI(object):
 
         self.base_url = base_url
         self.requester = Requester(
-            self.access_token, self.refresh_token, self.client_id, self.base_url
+            access_token, refresh_token, client_id, self.base_url
         )
 
         # access_token cannot be empty or None when making a request so initialize it here
@@ -86,24 +89,23 @@ class ArcgisAPI(object):
         if "error" in res:
             raise ArcGISException(res["error"]["message"])
 
-        # need Constructor be be aware that from password auth
-        ArcgisAPI._is_password_auth = True
         return cls(access_token=res["token"], username=username)
-
 
     # TODO: add properties
 
 
 class Requester(object):
-
-    # TODO: handle "private" attributes later...
-
     def __init__(self, access_token, refresh_token, client_id, base_url):
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.client_id = client_id
         self.session = requests.Session()
         self.base_url = base_url
+
+    def is_refresh_token_active(self):
+        previous_token = self.access_token
+        self._refresh_access_token()
+        return self.access_token is not None and self.access_token != previous_token
 
     def _process_response(self, response):
         "Return JSON"
@@ -114,8 +116,6 @@ class Requester(object):
 
     def _refresh_access_token(self):
         "docs"
-        if self.refresh_token is None:
-            return False
 
         refresh_url = f"{self.base_url}/oauth2/token"
 

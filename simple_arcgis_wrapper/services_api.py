@@ -47,6 +47,7 @@ class ServicesAPI(object):
         if not res["addResults"][0]["success"]:
             raise ArcGISException(res["addResults"][0]["error"]["description"])
 
+        # TODO: why not return PointFeature?
         #return PointFeature(res["addResults"][0]["objectId"], x, y)
         return res['addResults'][0]['success']
 

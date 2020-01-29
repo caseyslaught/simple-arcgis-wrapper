@@ -75,10 +75,8 @@ class TestFeatureLayer(unittest.TestCase):
             description="My test description",
             feature_service_url=feature_service.url,
             fields=layer_fields,
-            x_min=10.0,
-            y_min=10.0,
-            x_max=20.0,
-            y_max=20.0,
+            x_min=10.0, y_min=10.0,
+            x_max=20.0, y_max=20.0,
             wkid=4326,
         )
         return fl

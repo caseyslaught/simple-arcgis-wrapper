@@ -1,6 +1,3 @@
-"""
-
-"""
 
 import urllib.parse
 
@@ -24,9 +21,17 @@ class FeatureService(object):
     def title(self):
         return self._title
 
+    # update in AGOL, will need to pass api to model
+    #@title.setter
+    #def title(self, title):
+    #    self._title = title
+
     @property
     def url(self):
         return self._url
+
+    # Or maybe include a .save method which 
+    # pushes all changes to AGOL
 
 
 class FeatureLayer(object):

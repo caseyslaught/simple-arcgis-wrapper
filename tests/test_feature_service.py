@@ -16,8 +16,8 @@ class TestFeatureService(unittest.TestCase):
         self.api = saw.ArcgisAPI(
             access_token=AGOL_ACCESS_TOKEN,
             refresh_token=AGOL_REFRESH_TOKEN,
-            client_id=AGOL_CLIENT_ID,
             username=AGOL_USERNAME,
+            client_id=AGOL_CLIENT_ID,
         )
 
     def tearDown(self):
@@ -53,6 +53,9 @@ class TestFeatureService(unittest.TestCase):
         self.assertIsNotNone(service)
 
         self.assertTrue(self.api.services.delete_feature_service(feature_service.id))
+
+    # TODO: test get feature service that doesn't exist
+    
 
     def test_get_one_feature_service(self):
         # verify that get_feature_service returns the exact name

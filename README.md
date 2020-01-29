@@ -8,9 +8,9 @@ This project is geared towards developers who just want to get data into the Arc
 
 ## Prerequisites
 
-First you will need an ArcGIS Online account and an app registered on the Developer portal.
+First you will need an ArcGIS Online account. If you plan on using token authentication, rather than a username and password, you will need an app registered on the Developer portal.
 
-Then you will need to know a thing or two about ArcGIS lingo.
+Then you will need to know a thing or two about ArcGIS.
 ### Feature service: 
 - "Feature services allow you to serve features over the Internet and provide the symbology to use when displaying the features."
 - A feature service can store many feature layers.
@@ -31,13 +31,14 @@ pip install simple-arcgis-wrapper
 
 ## Usage
 
-### 0. Import
+### 1. Import it
 ```
 import simple_arcgis_wrapper as saw
 ```
 
-### 1. Identify yourself
+### 2. Identify yourself
 
+#### Token-based  authentication
 You will need a registered app and tokens obtained through the OAuth flow. Check out [this link](https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/server-based-user-logins/) to learn more about setting up OAuth.
 
 ```
@@ -49,22 +50,29 @@ api = saw.ArcgisAPI(
 )
 ```
 
-### 2. Create a feature service
+#### Username and password authentication
+If you just want to add data to your own account you can use this authentication scheme. Use this for one-off tasks, as this scheme will only be valid for 1 hour. Use OAuth tokens for longer-lived operations.
+```
+api = saw.ArcgisAPI.fromusernamepassword(
+    username='username', 
+    password='password'
+)
+```
 
-A feature service is like a container for many feature layers.
+### 3. Create a feature service
 
 ```
 service = api.services.create_feature_service('NAME', 'DESCRIPTION')
 
-print(service.id, service.name, service.url) # service is a FeatureService object
+# service is a FeatureService object
+print(service.id, service.name, service.url)
 ```
 
-### 3. Create a feature layer in the feature service
+### 4. Create a feature layer in the feature service
 
-A feature layer is where you actually store your geometric features like points, lines and polygons.
+A feature layer stores your features, so you need to define the layer type and any additional fields.
 
 ```
-# First specify additional attribute columns.
 fields = saw.fields.Fields()
 fields.add_field('Date', saw.fields.DateField)
 fields.add_field('Name', saw.fields.StringField)
@@ -72,46 +80,177 @@ fields.add_field('Altitude', saw.fields.DoubleField)
 
 layer = api.services.create_feature_layer(
     layer_type='point',                      # point, line, or polygon
-    name=name,                               # name of the layer
-    description='My test description',       # description of the layer
-    feature_service_url=feature_service.url, # the URL of the feature service that the layer will be added to
-    fields=layer_fields,                     # a Fields instance
+    name='NAME',                               
+    description='DESCRIPTION',       
+    feature_service_url=service.url,
+    fields=fields,                     
     x_min=10.0, y_min=10.0,                  # min bounding box parameters
     x_max=20.0, y_max=20.0,                  # max bounding box parameters
     wkid=4326                                # well-known ID spatial reference
 )
 
-print(layer.id, layer.name, layer.url) # layer is a FeatureLayer object
+# layer is a FeatureLayer object
+print(layer.id, layer.name, layer.url)
 
 ```
 
-### 4. Add a point to the feature layer
+### 5. Add one point to the feature layer
 
 ```
-# Specify an attributes with keys that match the layer's columns
+# attribute keys must match the layer's fields
 attributes = {
     'Date': '2020-01-01 15:30:45',
     'Name': 'John Doe',
     'Altitude': 12.5
 }
 
-point_feature = api.services.add_point(lon=10.0, lat=20.0, layer_url=layer.url, attributes=attributes)
+success = api.services.add_point(
+    lon=10.0, 
+    lat=20.0, 
+    attributes=attributes
+    layer_id=layer.id, 
+    feature_service_url=service.url
+)
 
-print(point_feature.id) # point_feature is a Feature object
+print(success) # True or False
 ```
 
-### 5. Delete a feature layer
+### 6. Add multiple points to the feature layer
+
+```
+attributes = {
+    "Date": "2020-01-01 15:30:45",
+    "Name": "John Doe",
+    "DeviceId": "abc123",
+}
+
+p1 = {
+    'lon': 10.0, 'lat': 20.0,
+    'Date': "2020-01-01 12:12:12",
+    'Name': 'John Doe',
+    'DeviceId': 'abc123'
+}
+
+p2 = {
+    'lon': 10.0, 'lat': 20.0,
+    'Date': "2020-01-01 12:12:12",
+    'Name': 'John Doe',
+    'DeviceId': 'abc123'
+}
+
+adds = api.services.add_points(
+    points=[p1, p2], 
+    layer_id=layer.id, 
+    feature_service_url=service.url
+)
+
+# adds is a dict where key is object ID and value is success
+for object_id, success in adds.items():
+    print(object_id, success)
+```
+
+
+### Get a feature service
+Get a feature service by passing the exact name of the service.
+```
+other_service = self.api.services.get_feature_service('OTHER_NAME')
+```
+
+### Get a feature layer
+Get a layer from a feature service by looking up it's ID or exact name.
+```
+layer_by_id = api.services.get_feature_layer(service.url, layer_id=0)
+layer_by_name = api.services.get_feature_layer(service.url, layer_name="other layer")
+```
+
+### Get features
+You can get features from a feature layer by passing an SQL 92 formatted _where_ clause as described [here](https://developers.arcgis.com/rest/services-reference/query-feature-service-layer-.htm). Specify the attributes you want returned with the _out_fields_ argument.
+
+>Pro tip: return all features with _where="1=1"_
+
+>Only point features supported right now.
+```
+point_features = api.services.get_features(
+    where="DeviceId = 'abc123'",
+    layer_id=layer.id,
+    feature_service_url=service.url,
+    out_fields=['OBJECTID']
+)
+
+# point is a PointFeature object
+point = point_features[0]
+print(point.id, point.x, point.y)
+```
+
+### Update a feature service
+>Only updating the service's _title_ supported right now.
+
+```
+success = api.services.update_feature_service(
+    feature_service_id=service.id, 
+    title="New Title"
+)
+
+print(success) # True or False
+```
+
+### Update features
+Update multiple features by passing a list of tuples which contain an object ID, attributes to update and geometry respectively. If you want to update features based on a where clause, first get the features you want as described above.
+
+>If you are not updating attributes or geometry, pass None.
+```
+updates_list = [
+    (0, {"Name": "John Doe II"}, {"x": 10.1, "y": 20.1}),
+    (1, None, {"x": 10.3, "y": 20.2}),
+    (1, {"Name": "John Doe II"}, None),
+]
+
+updates = api.services.update_features(
+    updates=updates_list, 
+    layer_id=layer.id, 
+    feature_service_url=service.url
+)
+
+for object_id, success in updates.items():
+    print(object_id, success)
+
+```
+
+### Delete features
+
+Delete features by passing an SQL 92 _where_ clause.
+```
+deletes = api.services.delete_features(
+    where="DeviceId = 'abc123'",
+    layer_id=layer.id,
+    feature_service_url=service.url
+)
+
+for object_id, success in deletes.items():
+    print(object_id, success)
+```
+
+### Delete a feature layer
 
 ```
 api.services.delete_feature_layers([layer.id], service.url)
 ```
 
-### 6. Delete a feature service
+### Delete a feature service
 
 ```
 api.services.delete_feature_service(service.id)
 ```
 
+### Exceptions
+Invalid arguments to ArcGIS may result in an error. You can catch them with _ArcGISException_ which includes the message returned from ArcGIS.
+```
+try:
+    # try to create a duplicate feature service
+    api.services.create_feature_service('NAME', 'DESCRIPTION')
+except saw.exceptions.ArcGISException as e:
+    print(e)
+```
 
 ## Testing
 
@@ -120,8 +259,9 @@ Before testing, configure the following environment variables:
 - ARCGIS_REFRESH_TOKEN
 - ARCGIS_CLIENT_ID
 - ARCGIS_USERNAME
+- ARCGIS_PASSWORD
 
-By running the tests you will incur a (very) small charge to your account.
+By running the tests you will incur a small charge to your account.
 
 ```
 python -m unittest tests/test*.py

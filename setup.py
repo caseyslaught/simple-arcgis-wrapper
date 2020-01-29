@@ -3,7 +3,7 @@ import sys
 
 from setuptools import setup
 
-version = '1.0.1'
+version = '1.0.2'
 
 long_description = open('README.md').read()
 
