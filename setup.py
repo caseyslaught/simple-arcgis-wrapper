@@ -3,7 +3,7 @@ import sys
 
 from setuptools import setup
 
-version = '0.7'
+version = '1.0.1'
 
 long_description = open('README.md').read()
 
@@ -24,7 +24,7 @@ setup(
     url='https://github.com/caracal-cloud/simple-arcgis-wrapper',
 
     packages=['simple_arcgis_wrapper'],
-    python_requires=">=3",
+    python_requires=">=3.5",
     install_requires=[
         'requests>=2.10.0'
     ],

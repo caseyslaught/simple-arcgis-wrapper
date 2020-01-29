@@ -14,6 +14,7 @@ class TestUsernamePassword(unittest.TestCase):
 
         self.assertIsNotNone(api.requester.access_token)
         self.assertIsNone(api.requester.refresh_token)
+        self.assertIsNone(api.requester.client_id)
 
         feature_service = api.services.create_feature_service("SAW Testing Username Password", 'this is a test')
 

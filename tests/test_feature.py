@@ -16,6 +16,7 @@ class TestFeature(unittest.TestCase):
             client_id=AGOL_CLIENT_ID,
             username=AGOL_USERNAME,
         )
+
         feature_service = api.services.create_feature_service(
             f"Testing Feature {random.randint(0, 99)}", "This is a test."
         )
