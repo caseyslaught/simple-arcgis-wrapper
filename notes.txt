@@ -13,5 +13,3 @@ TODO: refactor utilities
 4. From Ubuntu terminal run: twine upload dist/*
     - caseyslaught Gisenyi1369
 
-
-

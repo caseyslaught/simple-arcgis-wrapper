@@ -4,7 +4,7 @@ A simple wrapper for interacting with the ArcGIS Online REST API.
 
 ## About
 
-This project is geared towards developers who just want to get data into the ArcGIS Online as easily as possible. The REST API can be pretty confusing if you aren't familiar with ArcGIS jargon, so we created this simple wrapper to abstract some of the difficulties with creating resources and adding data.
+This project is geared towards developers who want to get data into the ArcGIS Online as easily as possible. The REST API can be pretty confusing if you aren't familiar with ArcGIS jargon and the ArcGIS API for Python is cumbersome for cloud-based programs, so we created this simple wrapper to abstract some of the difficulties with creating resources and adding data.
 
 ## Prerequisites
 

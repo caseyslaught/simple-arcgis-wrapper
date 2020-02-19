@@ -17,6 +17,15 @@ DoubleField = {
     "defaultValue": None,
 }
 
+IntegerField = {
+    "type": "esriFieldTypeInteger",
+    "sqlType": "sqlTypeInteger",
+    "nullable": True,
+    "editable": True,
+    "domain": None,
+    "defaultValue": None,
+}
+
 _ObjectIdField = {
     "name": "OBJECTID",
     "type": "esriFieldTypeOID",

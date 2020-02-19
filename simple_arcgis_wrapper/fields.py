@@ -1,6 +1,6 @@
 import json
 
-from .field_types import DateField, DoubleField, StringField, _ObjectIdField
+from .field_types import DateField, DoubleField, IntegerField, StringField, _ObjectIdField
 
 
 class Fields:
