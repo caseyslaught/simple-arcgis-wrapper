@@ -31,12 +31,12 @@ pip install simple-arcgis-wrapper
 
 ## Usage
 
-### 1. Import it
+### Import it
 ```
 import simple_arcgis_wrapper as saw
 ```
 
-### 2. Identify yourself
+### Identify yourself
 
 #### Token-based  authentication
 You will need a registered app and tokens obtained through the OAuth flow. Check out [this link](https://developers.arcgis.com/documentation/core-concepts/security-and-authentication/server-based-user-logins/) to learn more about setting up OAuth.
@@ -59,7 +59,7 @@ api = saw.ArcgisAPI.fromusernamepassword(
 )
 ```
 
-### 3. Create a feature service
+### Create a feature service
 
 ```
 service = api.services.create_feature_service('NAME', 'DESCRIPTION')
@@ -68,7 +68,7 @@ service = api.services.create_feature_service('NAME', 'DESCRIPTION')
 print(service.id, service.name, service.url)
 ```
 
-### 4. Create a feature layer in the feature service
+### Create a feature layer in the feature service
 
 A feature layer stores your features, so you need to define the layer type and any additional fields.
 
@@ -94,7 +94,28 @@ print(layer.id, layer.name, layer.url)
 
 ```
 
-### 5. Add one point to the feature layer
+### Create a table in the feature service
+
+A table is like a feature layer except it doesn't have coordinates. 
+
+```
+fields = saw.fields.Fields()
+fields.add_field('Date', saw.fields.DateField)
+fields.add_field('Name', saw.fields.StringField)
+fields.add_field('Email', saw.fields.StringField)
+
+table = api.services.create_table(
+    name="TABLE_NAME", 
+    description="TABLE_DESCRIPTION",
+    feature_service_url=feature_service.url,
+    fields=fields
+)
+
+# table is a Table object
+print(table.id, table.name, table.url)
+```
+
+### Add one point to the feature layer
 
 ```
 # attribute keys must match the layer's fields
@@ -115,7 +136,7 @@ success = api.services.add_point(
 print(success) # True or False
 ```
 
-### 6. Add multiple points to the feature layer
+### Add multiple points to the feature layer
 
 ```
 attributes = {
@@ -213,10 +234,29 @@ updates = api.services.update_features(
 
 for object_id, success in updates.items():
     print(object_id, success)
-
 ```
 
-### Delete features
+### Update table rows
+Update multiple table rows by passing a list of tuples which contain an object ID and attributes to update. You can use a where clause to filter the affected rows.
+
+```
+updates_list = [
+    (0, {"Name": "John Doe II", "Email": "johndoe2@example.com"}),
+    (1, {"Name": "John Doe II", "Email": "johndoe2@example.com"})
+]
+
+updates = api.services.update_table_rows(
+    updates=updates_list, 
+    table_id=table.id, 
+    feature_service_url=service.url
+)
+
+for object_id, success in updates.items():
+    print(object_id, success)
+```
+
+
+### Delete features from a feature layer or table
 
 Delete features by passing an SQL 92 _where_ clause.
 ```

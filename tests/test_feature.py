@@ -9,7 +9,6 @@ from tests import AGOL_ACCESS_TOKEN, AGOL_CLIENT_ID, AGOL_REFRESH_TOKEN, AGOL_US
 class TestFeature(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # random.seed(793238)
         api = saw.ArcgisAPI(
             access_token=AGOL_ACCESS_TOKEN,
             refresh_token=AGOL_REFRESH_TOKEN,

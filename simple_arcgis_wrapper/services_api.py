@@ -5,10 +5,7 @@ docs
 import json
 
 from .exceptions import ArcGISException
-from .models import FeatureLayer, FeatureService, PointFeature
-
-
-# TODO: use layer_url or layer_id + feature_service_url?
+from .models import FeatureLayer, FeatureService, PointFeature, Table, TableRow
 
 
 class ServicesAPI(object):
@@ -24,7 +21,7 @@ class ServicesAPI(object):
     def add_point(self, lon, lat, attributes, layer_id, feature_service_url):
         "docs"
 
-        if abs(lon) > 180: # TODO: let ArcGIS reject this?
+        if abs(lon) > 180:  # TODO: let ArcGIS reject this?
             raise ValueError("invalid x value")
 
         if abs(lat) > 90:
@@ -48,8 +45,8 @@ class ServicesAPI(object):
             raise ArcGISException(res["addResults"][0]["error"]["description"])
 
         # TODO: why not return PointFeature?
-        #return PointFeature(res["addResults"][0]["objectId"], x, y)
-        return res['addResults'][0]['success']
+        # return PointFeature(res["addResults"][0]["objectId"], x, y)
+        return res["addResults"][0]["success"]
 
     def add_points(self, points, layer_id, feature_service_url):
         "points is a list of dicts. Each dict must contain lon, lat and any required attributes."
@@ -59,25 +56,34 @@ class ServicesAPI(object):
         features = list()
         for point in points:
             try:
-                lon = point.pop('lon')
-                lat = point.pop('lat')
+                lon = point.pop("lon")
+                lat = point.pop("lat")
             except KeyError:
                 continue
-            
-            features.append({
-                "geometry" : {"x" : lon, "y" : lat}, 
-                "attributes" : {**point}
-            })
-        
-        data = {
-            'features': json.dumps(features)
-        }
+
+            features.append({"geometry": {"x": lon, "y": lat}, "attributes": {**point}})
+
+        data = {"features": json.dumps(features)}
 
         add_features_url = f"{feature_service_url}/{layer_id}/addFeatures"
         res = self.requester.POST(add_features_url, data)
 
         if res.get("error", False):
             raise ArcGISException(res["error"].get("message", "add_points error"))
+
+        return {u["objectId"]: u["success"] for u in res.get("addResults", [])}
+
+    def add_table_rows(self, rows, table_id, feature_service_url):
+        "rows is a list of dicts. Each dict must contain the required attributes."
+
+        features = [{"attributes": row} for row in rows]
+        data = {"features": json.dumps(features)}
+
+        add_rows_url = f"{feature_service_url}/{table_id}/addFeatures"
+        res = self.requester.POST(add_rows_url, data)
+
+        if res.get("error", False):
+            raise ArcGISException(res["error"].get("message", "add_table_rows error"))
 
         return {u["objectId"]: u["success"] for u in res.get("addResults", [])}
 
@@ -114,7 +120,7 @@ class ServicesAPI(object):
         layer_type,
         name,
         description,
-        feature_service_url,  # or pass feature service object
+        feature_service_url,
         fields,
         x_min=0,
         y_min=0,
@@ -172,23 +178,67 @@ class ServicesAPI(object):
         layer = FeatureLayer(_id, _name, _url)
         return layer
 
-    def delete_features(self, layer_id, feature_service_url, object_ids=None, where=None):
+    def create_table(self, name, description, feature_service_url, fields):
         "docs"
 
+        create_layer_url = (
+            feature_service_url.replace("/services/", "/admin/services/")
+            + "/addToDefinition"
+        )
+
+        add_to_definition = {
+            "tables": [
+                {
+                    "name": name,
+                    "description": description,
+                    "type": "table",
+                    "objectIdField": "OBJECTID",
+                    "fields": fields.get_fields(),
+                }
+            ]
+        }
+
+        data = {
+            "addToDefinition": json.dumps(add_to_definition),
+            "outputType": "featureService",
+        }
+
+        res = self.requester.POST(create_layer_url, data)
+
+        if not res.get("success", False):
+            raise ArcGISException(res["error"]["message"])
+
+        layer_data = res["layers"][0]
+        _id, _name, _url = (
+            layer_data["id"],
+            layer_data["name"],
+            f'{feature_service_url}/{layer_data["id"]}',
+        )
+
+        layer = FeatureLayer(_id, _name, _url)
+        return layer
+
+    def delete_features(
+        self, layer_id, feature_service_url, object_ids=None, where=None
+    ):
+        "delete features from a feature layer or table"
+
         if object_ids is None and where is None:
-            raise ValueError('object_ids or where required')
+            raise ValueError("object_ids or where required")
 
         data = dict()
 
         if object_ids is not None:
-            data['objectIds'] = ', '.join([str(_id) for _id in object_ids]) # convert each id to str first
+            data["objectIds"] = ", ".join(
+                [str(_id) for _id in object_ids]
+            )  # convert each id to str first
 
         if where is not None:
-            data['where'] = where
+            data["where"] = where
 
-        delete_features_url = f'{feature_service_url}/{layer_id}/deleteFeatures'
+        delete_features_url = f"{feature_service_url}/{layer_id}/deleteFeatures"
         res = self.requester.POST(delete_features_url, data)
-       
+
         if res.get("error", False):
             raise ArcGISException(res["error"].get("message", "delete_features error"))
 
@@ -231,6 +281,29 @@ class ServicesAPI(object):
 
         return True
 
+    def delete_tables(self, table_ids, feature_service_url):
+        "docs"
+
+        delete_tables_url = (
+            feature_service_url.replace("/services/", "/admin/services/")
+            + "/deleteFromDefinition"
+        )
+
+        deleteFromDefinition = {
+            "tables": [{"id": str(table_id)} for table_id in table_ids]
+        }
+
+        data = {
+            "deleteFromDefinition": json.dumps(deleteFromDefinition),
+        }
+
+        res = self.requester.POST(delete_tables_url, data)
+
+        if not res.get("success", False):
+            raise ArcGISException(res["error"]["message"])
+
+        return True
+
     def get_features(self, where, layer_id, feature_service_url, out_fields=[]):
         "where is an ArcGIS formatted string. out_fields is a list of fields."
 
@@ -260,6 +333,23 @@ class ServicesAPI(object):
 
         return features
 
+    def get_table_rows(self, where, table_id, feature_service_url, out_fields=[]):
+        "where is an ArcGIS formatted string. out_fields is a list of fields."
+
+        if "OBJECTID" not in out_fields:
+            out_fields.append("OBJECTID")
+
+        params = {"where": where, "outFields": ",".join(out_fields)}
+
+        query_url = f"{feature_service_url}/{table_id}/query"
+        res = self.requester.GET(query_url, params)
+
+        if res.get("error", False):
+            raise ArcGISException(res["error"].get("message", "get_table_rows error"))
+
+        rows = [TableRow(f["attributes"]["OBJECTID"]) for f in res.get("features", [])]
+        return rows
+
     def get_feature_layer(self, feature_service_url, layer_id=None, layer_name=None):
         "docs"
 
@@ -281,6 +371,25 @@ class ServicesAPI(object):
                     f'{feature_service_url}/{layer["id"]}',
                 )
                 return FeatureLayer(_id, _name, _url)
+
+    def get_table(self, feature_service_url, table_id=None, table_name=None):
+
+        res = self.requester.GET(feature_service_url)
+        if res.get("error", False):
+            raise ArcGISException(res["error"].get("message", "get_table error"))
+
+        for table in res.get("tables", []):
+
+            # explicitly use is not None because layer_id may be 0
+            if (table_id is not None and table_id == table["id"]) or (
+                table_name is not None and table_name == table["name"]
+            ):
+                _id, _name, _url = (
+                    table["id"],
+                    table["name"],
+                    f'{feature_service_url}/{table["id"]}',
+                )
+                return Table(_id, _name, _url)
 
     def get_feature_service(self, name, owner_username=None):
         "docs"
@@ -337,6 +446,42 @@ class ServicesAPI(object):
         update_features_url = f"{feature_service_url}/{layer_id}/updateFeatures"
         res = self.requester.POST(update_features_url, data)
         return {u["objectId"]: u["success"] for u in res.get("updateResults", [])}
+
+
+    def update_table_rows(self, updates, table_id, feature_service_url):
+        """
+        Batch updates table rows. 
+        updates is a list of tuples.
+        Each tuple has 2 elements: (id, attribute_dict)
+        """
+
+        # create updates list by adding additional attributes
+        table_row_updates = []
+        for u in updates:
+            _id, attributes = u
+
+            if attributes is None:
+                continue
+
+            tru = {"attributes": {"OBJECTID": _id}}
+
+            tru = {
+                "attributes": {
+                    "OBJECTID": _id,
+                    **attributes
+                }
+            }
+
+            table_row_updates.append(tru)
+
+        data = {
+            "features": json.dumps(table_row_updates),
+        }
+
+        update_features_url = f"{feature_service_url}/{table_id}/updateFeatures"
+        res = self.requester.POST(update_features_url, data)
+        return {u["objectId"]: u["success"] for u in res.get("updateResults", [])}
+
 
     def update_feature_service(self, feature_service_id, title=None):
         "There is a difference between name and title. More docs..."

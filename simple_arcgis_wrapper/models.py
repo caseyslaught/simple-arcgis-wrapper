@@ -33,6 +33,9 @@ class FeatureService(object):
     # Or maybe include a .save method which 
     # pushes all changes to AGOL
 
+    def __str__(self):
+        return f'{self.id}, {self.name}, {self.title}'
+
 
 class FeatureLayer(object):
     def __init__(self, id, name, url):
@@ -52,6 +55,9 @@ class FeatureLayer(object):
     def url(self):
         return self._url
 
+    def __str__(self):
+        return f'{self.id}, {self.name}'
+
 
 class PointFeature(object):
     def __init__(self, id, x, y):
@@ -70,3 +76,34 @@ class PointFeature(object):
     @property
     def y(self):
         return self._y
+
+
+class Table(object):
+    def __init__(self, id, name, url):
+        self._id = id
+        self._name = name
+        self._url = urllib.parse.quote(url, safe="%/:?=&")
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def url(self):
+        return self._url
+
+    def __str__(self):
+        return f'{self.id}, {self.name}'
+
+
+class TableRow(object):
+    def __init__(self, id):
+        self._id = id
+
+    @property
+    def id(self):
+        return self._id
