@@ -104,8 +104,12 @@ class Requester(object):
 
     def is_refresh_token_active(self):
         previous_token = self.access_token
-        self._refresh_access_token()
-        return self.access_token is not None and self.access_token != previous_token
+        try:
+            self._refresh_access_token()
+        except:
+            return False
+        else:
+            return self.access_token is not None and self.access_token != previous_token
 
     def _process_response(self, response):
         "Return JSON"
